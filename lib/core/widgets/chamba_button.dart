@@ -100,7 +100,7 @@ class ChambaButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           onTap: isLoading ? null : onPressed,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
@@ -139,16 +139,20 @@ class ChambaButton extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         if (leadingIcon != null) ...[
-          Icon(leadingIcon, size: 20, color: textColor),
-          const SizedBox(width: 8),
+          Icon(leadingIcon, size: 18, color: textColor),
+          const SizedBox(width: 6),
         ],
-        Text(
-          label,
-          style: textStyle.copyWith(color: textColor),
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textStyle.copyWith(color: textColor),
+          ),
         ),
         if (trailingIcon != null) ...[
-          const SizedBox(width: 8),
-          Icon(trailingIcon, size: 20, color: textColor),
+          const SizedBox(width: 6),
+          Icon(trailingIcon, size: 18, color: textColor),
         ],
       ],
     );

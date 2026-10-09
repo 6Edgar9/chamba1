@@ -10,6 +10,7 @@ import 'send_bid_screen.dart';
 import 'worker_my_jobs_screen.dart';
 import 'create_worker_profile_screen.dart';
 import 'role_selection_screen.dart';
+import 'chat_screen.dart';
 
 class AvailableJobsScreen extends StatefulWidget {
   final AppState? appState;
@@ -22,6 +23,7 @@ class AvailableJobsScreen extends StatefulWidget {
 
 class _AvailableJobsScreenState extends State<AvailableJobsScreen> {
   late AppState _appState;
+  int _selectedIndex = 0;
   String _selectedFilter = 'Todos';
   bool _isAvailable = true;
 
@@ -260,6 +262,77 @@ class _AvailableJobsScreenState extends State<AvailableJobsScreen> {
               ],
             ),
           ),
+        ),
+      ),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x0F173B4D),
+              blurRadius: 10,
+              offset: Offset(0, -3),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: (index) {
+            setState(() {
+              _selectedIndex = index;
+            });
+            if (index == 1) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => WorkerMyJobsScreen(appState: _appState),
+                ),
+              );
+            } else if (index == 2) {
+              if (_appState.jobs.isNotEmpty) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ChatScreen(
+                      appState: _appState,
+                      job: _appState.jobs.first,
+                    ),
+                  ),
+                );
+              }
+            } else if (index == 3) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => CreateWorkerProfileScreen(appState: _appState),
+                ),
+              );
+            }
+          },
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.white,
+          selectedItemColor: AppColors.secondary,
+          unselectedItemColor: AppColors.muted,
+          selectedLabelStyle: AppTypography.labelSm.copyWith(fontWeight: FontWeight.w700),
+          unselectedLabelStyle: AppTypography.labelSm,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.handyman_outlined),
+              activeIcon: Icon(Icons.handyman),
+              label: 'Chambas',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.work_history_outlined),
+              activeIcon: Icon(Icons.work_history),
+              label: 'Mis Trabajos',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.chat_bubble_outline),
+              activeIcon: Icon(Icons.chat_bubble),
+              label: 'Mensajes',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              activeIcon: Icon(Icons.person),
+              label: 'Mi Perfil',
+            ),
+          ],
         ),
       ),
     );

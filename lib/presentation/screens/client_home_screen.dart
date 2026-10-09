@@ -12,6 +12,7 @@ import 'received_bids_screen.dart';
 import 'job_tracking_screen.dart';
 import 'role_selection_screen.dart';
 import 'worker_profile_detail_screen.dart';
+import 'chat_screen.dart';
 
 class ClientHomeScreen extends StatefulWidget {
   final AppState? appState;
@@ -24,6 +25,7 @@ class ClientHomeScreen extends StatefulWidget {
 
 class _ClientHomeScreenState extends State<ClientHomeScreen> {
   late AppState _appState;
+  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -281,6 +283,82 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
               ],
             ),
           ),
+        ),
+      ),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x0F173B4D),
+              blurRadius: 10,
+              offset: Offset(0, -3),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: (index) {
+            setState(() {
+              _selectedIndex = index;
+            });
+            if (index == 1) {
+              if (_appState.jobs.isNotEmpty) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ReceivedBidsScreen(
+                      appState: _appState,
+                      job: _appState.jobs.first,
+                    ),
+                  ),
+                );
+              }
+            } else if (index == 2) {
+              if (_appState.jobs.isNotEmpty) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ChatScreen(
+                      appState: _appState,
+                      job: _appState.jobs.first,
+                    ),
+                  ),
+                );
+              }
+            } else if (index == 3) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const RoleSelectionScreen(),
+                ),
+              );
+            }
+          },
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.white,
+          selectedItemColor: AppColors.secondary,
+          unselectedItemColor: AppColors.muted,
+          selectedLabelStyle: AppTypography.labelSm.copyWith(fontWeight: FontWeight.w700),
+          unselectedLabelStyle: AppTypography.labelSm,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
+              label: 'Inicio',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.assignment_outlined),
+              activeIcon: Icon(Icons.assignment),
+              label: 'Solicitudes',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.chat_bubble_outline),
+              activeIcon: Icon(Icons.chat_bubble),
+              label: 'Mensajes',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              activeIcon: Icon(Icons.person),
+              label: 'Perfil',
+            ),
+          ],
         ),
       ),
     );
