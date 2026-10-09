@@ -25,8 +25,7 @@ Desarrollar el MVP de la aplicación móvil CHAMBA en Flutter + Dart orientado a
 ## Task Checklist
 - [x] Task 1: Scaffold del proyecto Flutter y dependencias (google_fonts, intl)
 - [x] Task 2: Sistema de diseño CHAMBA (colores Stitch, tipografía Manrope/DM Sans, temas, componentes atómicos: ChambaButton, ChambaCard, ChambaBadge, PriceDialStepper)
-
-- [ ] Task 3: Capa de Dominio y Estado Mock (Modelos: JobRequest, WorkerProfile, Bid, Message; Repositorios Mock reactivos para Cliente y Trabajador)
+- [x] Task 3: Capa de Dominio y Estado Mock (Modelos: JobRequest, WorkerProfile, Bid, Message; Repositorios Mock reactivos para Cliente y Trabajador)
 - [ ] Task 4: Flujo Base y Navegación (01 Bienvenida e Identidad, 02 Selector de Modo Cliente/Trabajador con persistencia de rol activo)
 - [ ] Task 5: Flujo Cliente Parte 1 - Publicación (03 Inicio Cliente con categorías y solicitudes activas, 04 Publicar Solicitud con stepper de presupuesto en S/.)
 - [ ] Task 6: Flujo Cliente Parte 2 - Negociación y Seguimiento (05 Ofertas Recibidas con contraofertas, 06 Perfil del Trabajador con reseñas y badges, 07 Chat y Negociación interactiva, 08 Mi Servicio y Seguimiento con timeline de estado)
