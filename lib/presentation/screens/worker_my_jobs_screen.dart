@@ -1,0 +1,324 @@
+import 'package:flutter/material.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_typography.dart';
+import '../../core/widgets/chamba_button.dart';
+import '../../core/widgets/chamba_card.dart';
+import '../../core/widgets/chamba_badge.dart';
+import '../../data/models/job_request.dart';
+import '../state/app_state.dart';
+import 'chat_screen.dart';
+import 'job_tracking_screen.dart';
+
+class WorkerMyJobsScreen extends StatefulWidget {
+  final AppState appState;
+
+  const WorkerMyJobsScreen({
+    super.key,
+    required this.appState,
+  });
+
+  @override
+  State<WorkerMyJobsScreen> createState() => _WorkerMyJobsScreenState();
+}
+
+class _WorkerMyJobsScreenState extends State<WorkerMyJobsScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    widget.appState.addListener(_onStateUpdate);
+  }
+
+  void _onStateUpdate() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    widget.appState.removeListener(_onStateUpdate);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final allWorkerJobs = widget.appState.jobs;
+    final workerId = widget.appState.currentWorkerProfile.id;
+
+    final activeJobs = allWorkerJobs.where((j) {
+      final isAccepted = j.workerId == workerId || j.acceptedBidId != null;
+      return isAccepted && (j.status == JobStatus.onTheWay || j.status == JobStatus.inProgress);
+    }).toList();
+
+    final negotiatingJobs = allWorkerJobs.where((j) {
+      final hasBid = j.bids.any((b) => b.workerId == workerId);
+      return hasBid && (j.status == JobStatus.searching || j.status == JobStatus.negotiating);
+    }).toList();
+
+    final completedJobs = allWorkerJobs.where((j) {
+      return j.status == JobStatus.completed;
+    }).toList();
+
+    return Scaffold(
+      backgroundColor: AppColors.canvas,
+      appBar: AppBar(
+        title: const Text('Mis Trabajos'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Top Earnings Summary Card
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+              child: ChambaCard(
+                color: AppColors.primary,
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Ingresos del Mes',
+                          style: AppTypography.labelMd.copyWith(color: Colors.white70),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'Chiclayo • 2026',
+                            style: AppTypography.labelSm.copyWith(color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          'S/. ',
+                          style: AppTypography.headlineLg.copyWith(color: Colors.white70),
+                        ),
+                        Text(
+                          '1,840',
+                          style: AppTypography.numericBidLarge.copyWith(
+                            color: Colors.white,
+                            fontSize: 34,
+                          ),
+                        ),
+                        Text(
+                          '.00',
+                          style: AppTypography.headlineSm.copyWith(color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    const Divider(height: 1, color: Colors.white24),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildMetric('Completadas', '24'),
+                        _buildMetric('Calificación', '4.9 ⭐'),
+                        _buildMetric('Tasa éxito', '98%'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            // Tab bar
+            TabBar(
+              controller: _tabController,
+              labelColor: AppColors.secondary,
+              unselectedLabelColor: AppColors.muted,
+              indicatorColor: AppColors.secondary,
+              indicatorWeight: 3,
+              labelStyle: AppTypography.bodyMdMedium.copyWith(fontWeight: FontWeight.w700),
+              tabs: [
+                Tab(text: 'Activas (${activeJobs.length})'),
+                Tab(text: 'Negociando (${negotiatingJobs.length})'),
+                Tab(text: 'Historial (${completedJobs.length})'),
+              ],
+            ),
+
+            // Tab views
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildJobList(activeJobs, 'No tienes servicios activos en este momento.'),
+                  _buildJobList(negotiatingJobs, 'No tienes cotizaciones en negociación actualmente.'),
+                  _buildJobList(completedJobs, 'Aún no registras chambas completadas.'),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetric(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: AppTypography.bodyLgMedium.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        Text(
+          label,
+          style: AppTypography.labelSm.copyWith(color: Colors.white70),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildJobList(List<JobRequest> jobs, String emptyMessage) {
+    if (jobs.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.inbox_outlined, size: 48, color: AppColors.muted),
+              const SizedBox(height: 12),
+              Text(
+                emptyMessage,
+                textAlign: TextAlign.center,
+                style: AppTypography.bodyMd.copyWith(color: AppColors.muted),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      itemCount: jobs.length,
+      itemBuilder: (context, index) {
+        final job = jobs[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12.0),
+          child: ChambaCard(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => JobTrackingScreen(appState: widget.appState, job: job),
+                ),
+              );
+            },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      job.categoryName.toUpperCase(),
+                      style: AppTypography.labelSm.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    ChambaBadge(
+                      label: job.status.displayLabel,
+                      type: job.status == JobStatus.completed
+                          ? ChambaBadgeType.confirmed
+                          : ChambaBadgeType.counterReceived,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  job.title,
+                  style: AppTypography.bodyLgMedium.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.neutral,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Cliente: ${job.clientName} • ${job.district}',
+                  style: AppTypography.labelMd.copyWith(color: AppColors.muted),
+                ),
+                const SizedBox(height: 12),
+                const Divider(height: 1, color: Color(0x14202D33)),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          'S/. ',
+                          style: AppTypography.labelMd.copyWith(
+                            color: AppColors.muted,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          job.budget.toStringAsFixed(0),
+                          style: AppTypography.numericBid.copyWith(
+                            color: AppColors.secondary,
+                            fontSize: 22,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.chat_bubble_outline, size: 20),
+                          color: AppColors.primary,
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => ChatScreen(appState: widget.appState, job: job),
+                              ),
+                            );
+                          },
+                        ),
+                        ChambaButton.pill(
+                          label: 'Ver Detalles',
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => JobTrackingScreen(appState: widget.appState, job: job),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
