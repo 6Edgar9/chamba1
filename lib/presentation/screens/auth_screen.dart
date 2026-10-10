@@ -49,13 +49,22 @@ class _AuthScreenState extends State<AuthScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.asset(
+                      'assets/images/chamba.png',
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, _, _) => Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.handyman_rounded, color: Colors.white, size: 28),
+                      ),
                     ),
-                    child: const Icon(Icons.handyman_rounded, color: Colors.white, size: 28),
                   ),
                   const SizedBox(width: 10),
                   Text(
