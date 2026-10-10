@@ -16,8 +16,13 @@ import 'chat_screen.dart';
 
 class ClientHomeScreen extends StatefulWidget {
   final AppState? appState;
+  final bool showBottomNav;
 
-  const ClientHomeScreen({super.key, this.appState});
+  const ClientHomeScreen({
+    super.key,
+    this.appState,
+    this.showBottomNav = false,
+  });
 
   @override
   State<ClientHomeScreen> createState() => _ClientHomeScreenState();
@@ -103,11 +108,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                     InkWell(
                       borderRadius: BorderRadius.circular(20),
                       onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const RoleSelectionScreen(),
-                          ),
-                        );
+                        _appState.switchRole(UserRole.worker);
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -285,7 +286,8 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: Container(
+      bottomNavigationBar: widget.showBottomNav
+          ? Container(
         decoration: const BoxDecoration(
           boxShadow: [
             BoxShadow(
@@ -360,7 +362,8 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
             ),
           ],
         ),
-      ),
+      )
+          : null,
     );
   }
 

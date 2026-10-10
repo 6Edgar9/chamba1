@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/chamba_button.dart';
@@ -6,6 +7,7 @@ import '../../core/widgets/chamba_card.dart';
 import '../../core/widgets/price_dial_stepper.dart';
 import '../../data/models/job_request.dart';
 import '../state/app_state.dart';
+import '../widgets/chamba_interactive_map.dart';
 import 'worker_my_jobs_screen.dart';
 
 class SendBidScreen extends StatefulWidget {
@@ -148,13 +150,13 @@ class _SendBidScreenState extends State<SendBidScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Presupuesto ofrecido por el cliente:',
-                          style: AppTypography.bodyMd.copyWith(color: AppColors.muted),
+                          'Presupuesto ofrecido por cliente:',
+                          style: AppTypography.labelSm.copyWith(color: AppColors.muted),
                         ),
                         Text(
                           'S/. ${clientBudget.toStringAsFixed(0)}',
-                          style: AppTypography.headlineSm.copyWith(
-                            color: AppColors.primary,
+                          style: AppTypography.labelLg.copyWith(
+                            color: AppColors.secondary,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -163,62 +165,91 @@ class _SendBidScreenState extends State<SendBidScreen> {
                   ],
                 ),
               ),
+              const SizedBox(height: 16),
 
+              // Approximate Privacy Map Preview
+              Text(
+                'Zona Aproximada de Trabajo',
+                style: AppTypography.labelLg.copyWith(color: AppColors.neutral),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Por seguridad del cliente, se muestra el radio aproximado de 500m en ${widget.job.district}:',
+                style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+              ),
+              const SizedBox(height: 10),
+              ChambaInteractiveMap(
+                mode: MapDisplayMode.approximate,
+                height: 180,
+                initialCenter: LatLng(widget.job.latitude, widget.job.longitude),
+                isInteractive: false,
+              ),
               const SizedBox(height: 20),
 
-              // Status message of offer
+              // inDrive Price dial negotiation
+              PriceDialStepper(
+                currentPrice: _proposedAmount,
+                minPrice: 15.0,
+                maxPrice: 1500.0,
+                label: 'Tu Propuesta de Precio en Soles',
+                onPriceChanged: (val) {
+                  setState(() => _proposedAmount = val);
+                },
+              ),
+              const SizedBox(height: 12),
+
+              // Status indicator comparing against client offer
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
                   color: isDirectAccept
-                      ? AppColors.badgeConfirmedBg
-                      : AppColors.surfaceContainer,
-                  borderRadius: BorderRadius.circular(12),
+                      ? AppColors.tertiary.withValues(alpha: 0.1)
+                      : isHigher
+                          ? AppColors.secondary.withValues(alpha: 0.1)
+                          : AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
                   children: [
                     Icon(
-                      isDirectAccept ? Icons.check_circle : Icons.swap_vert,
-                      size: 20,
-                      color: isDirectAccept ? AppColors.tertiary : AppColors.secondary,
+                      isDirectAccept
+                          ? Icons.check_circle_outline
+                          : isHigher
+                              ? Icons.arrow_upward
+                              : Icons.arrow_downward,
+                      size: 16,
+                      color: isDirectAccept
+                          ? AppColors.tertiary
+                          : isHigher
+                              ? AppColors.secondary
+                              : AppColors.primary,
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         isDirectAccept
-                          ? 'Aceptas directamente el presupuesto fijado por el cliente.'
-                          : (isHigher
-                              ? 'Contraoferta: propones S/. ${(_proposedAmount - clientBudget).toStringAsFixed(0)} más.'
-                              : 'Propones un descuento de S/. ${(clientBudget - _proposedAmount).toStringAsFixed(0)}.'),
-                        style: AppTypography.bodyMdMedium.copyWith(
-                          fontSize: 13,
-                          color: isDirectAccept ? AppColors.tertiary : AppColors.primary,
+                          ? 'Aceptas directamente el presupuesto del cliente'
+                          : isHigher
+                              ? 'Contraoferta: propones S/. ${(_proposedAmount - clientBudget).toStringAsFixed(0)} más'
+                              : 'Propones una tarifa S/. ${(clientBudget - _proposedAmount).toStringAsFixed(0)} más económica',
+                        style: AppTypography.labelSm.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: isDirectAccept
+                              ? AppColors.tertiary
+                              : isHigher
+                                  ? AppColors.secondary
+                                  : AppColors.primary,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-
-              const SizedBox(height: 18),
-
-              // Stepper Negotiation Dial
-              PriceDialStepper(
-                currentPrice: _proposedAmount,
-                minPrice: 15.0,
-                maxPrice: 2000.0,
-                step: 5.0,
-                label: 'Tu Oferta Propuesta en Soles',
-                onPriceChanged: (val) {
-                  setState(() => _proposedAmount = val);
-                },
-              ),
-
               const SizedBox(height: 22),
 
-              // ETA options
+              // ETA Arrival chips
               Text(
-                'Tiempo estimado de llegada al domicilio',
+                'Tiempo estimado de llegada (en moto/transporte)',
                 style: AppTypography.labelLg.copyWith(color: AppColors.neutral),
               ),
               const SizedBox(height: 10),
@@ -227,34 +258,60 @@ class _SendBidScreenState extends State<SendBidScreen> {
                   final isSelected = _selectedEtaMinutes == eta;
                   return Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                      child: ChoiceChip(
-                        selectedColor: AppColors.surfaceContainer,
-                        backgroundColor: AppColors.card,
-                        labelStyle: TextStyle(
-                          color: isSelected ? AppColors.primary : AppColors.neutral,
-                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                          fontSize: 13,
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(10),
+                        onTap: () => setState(() => _selectedEtaMinutes = eta),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isSelected ? AppColors.primary : Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isSelected ? AppColors.primary : const Color(0x1F202D33),
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                '$eta',
+                                style: AppTypography.labelLg.copyWith(
+                                  color: isSelected ? Colors.white : AppColors.neutral,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              Text(
+                                'min',
+                                style: AppTypography.labelSm.copyWith(
+                                  color: isSelected ? Colors.white70 : AppColors.muted,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        label: Text('$eta min'),
-                        selected: isSelected,
-                        onSelected: (val) {
-                          if (val) setState(() => _selectedEtaMinutes = eta);
-                        },
                       ),
                     ),
                   );
                 }).toList(),
               ),
+              const SizedBox(height: 22),
 
-              const SizedBox(height: 20),
-
-              // Quick notes chips
+              // Message input
               Text(
-                'Mensaje para el cliente',
+                'Mensaje personalizado para el cliente',
                 style: AppTypography.labelLg.copyWith(color: AppColors.neutral),
               ),
               const SizedBox(height: 8),
+              TextField(
+                controller: _messageController,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  hintText: 'Ej. Cuento con repuestos en moto, puedo ir de inmediato...',
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // Quick notes chips
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -264,31 +321,30 @@ class _SendBidScreenState extends State<SendBidScreen> {
                       child: ActionChip(
                         backgroundColor: AppColors.card,
                         label: Text(note),
-                        labelStyle: AppTypography.labelSm.copyWith(color: AppColors.primary),
+                        labelStyle: AppTypography.labelSm.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
                         onPressed: () {
-                          setState(() => _messageController.text = note);
+                          setState(() {
+                            _messageController.text = note;
+                          });
                         },
                       ),
                     );
                   }).toList(),
                 ),
               ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _messageController,
-                maxLines: 2,
-                decoration: const InputDecoration(
-                  hintText: 'Describe repuestos, garantía o detalles de tu llegada...',
-                ),
-              ),
+              const SizedBox(height: 26),
 
-              const SizedBox(height: 28),
-
+              // Submit CTA Button
               ChambaButton(
-                label: 'Enviar Oferta de S/. ${_proposedAmount.toStringAsFixed(0)}',
+                label: _isSubmitting
+                    ? 'Enviando propuesta...'
+                    : 'Enviar Propuesta S/. ${_proposedAmount.toStringAsFixed(0)}',
                 leadingIcon: Icons.send_rounded,
                 isLoading: _isSubmitting,
-                onPressed: _submitBid,
+                onPressed: _isSubmitting ? null : _submitBid,
               ),
               const SizedBox(height: 16),
             ],

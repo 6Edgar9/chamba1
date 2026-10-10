@@ -9,13 +9,17 @@ import '../state/app_state.dart';
 import 'send_bid_screen.dart';
 import 'worker_my_jobs_screen.dart';
 import 'create_worker_profile_screen.dart';
-import 'role_selection_screen.dart';
 import 'chat_screen.dart';
 
 class AvailableJobsScreen extends StatefulWidget {
   final AppState? appState;
+  final bool showBottomNav;
 
-  const AvailableJobsScreen({super.key, this.appState});
+  const AvailableJobsScreen({
+    super.key,
+    this.appState,
+    this.showBottomNav = false,
+  });
 
   @override
   State<AvailableJobsScreen> createState() => _AvailableJobsScreenState();
@@ -124,11 +128,7 @@ class _AvailableJobsScreenState extends State<AvailableJobsScreen> {
             icon: const Icon(Icons.swap_horiz, color: AppColors.secondary),
             tooltip: 'Cambiar a Modo Cliente',
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const RoleSelectionScreen(),
-                ),
-              );
+              _appState.switchRole(UserRole.client);
             },
           ),
         ],
@@ -264,7 +264,8 @@ class _AvailableJobsScreenState extends State<AvailableJobsScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: Container(
+      bottomNavigationBar: widget.showBottomNav
+          ? Container(
         decoration: const BoxDecoration(
           boxShadow: [
             BoxShadow(
@@ -334,7 +335,8 @@ class _AvailableJobsScreenState extends State<AvailableJobsScreen> {
             ),
           ],
         ),
-      ),
+      )
+          : null,
     );
   }
 

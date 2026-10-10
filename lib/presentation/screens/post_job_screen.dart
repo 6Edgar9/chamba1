@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/chamba_button.dart';
 import '../../core/widgets/price_dial_stepper.dart';
 import '../../data/models/category.dart';
 import '../state/app_state.dart';
+import '../widgets/chamba_interactive_map.dart';
 import 'received_bids_screen.dart';
 
 class PostJobScreen extends StatefulWidget {
@@ -27,8 +29,12 @@ class _PostJobScreenState extends State<PostJobScreen> {
   late JobCategory _selectedCategory;
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _addressController = TextEditingController(text: 'Santa Victoria, Calle Los Pinos 342');
-  final _districtController = TextEditingController(text: 'Chiclayo');
+  final _addressController = TextEditingController(text: 'Calle Los Pinos 342, Dpto 201');
+  final _districtController = TextEditingController(text: 'Santa Victoria, Chiclayo');
+  final _referenceController = TextEditingController(text: 'Frente al parque principal, reja blanca');
+
+  double _selectedLat = -6.7760;
+  double _selectedLng = -79.8436;
 
   String _selectedUrgency = 'Urgente (Hoy)';
   double _proposedBudget = 50.0;
@@ -53,6 +59,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
     _descriptionController.dispose();
     _addressController.dispose();
     _districtController.dispose();
+    _referenceController.dispose();
     super.dispose();
   }
 
@@ -70,9 +77,12 @@ class _PostJobScreenState extends State<PostJobScreen> {
           ? 'Trabajo de ${_selectedCategory.name} en ${_districtController.text.trim()}'
           : _descriptionController.text.trim(),
       budget: _proposedBudget,
-      district: '${_districtController.text.trim()}, Chiclayo',
+      district: _districtController.text.trim(),
       address: _addressController.text.trim(),
       urgency: _selectedUrgency,
+      latitude: _selectedLat,
+      longitude: _selectedLng,
+      reference: _referenceController.text.trim(),
     );
 
     if (!mounted) return;
@@ -193,9 +203,33 @@ class _PostJobScreenState extends State<PostJobScreen> {
                     hintText: 'Describe el problema, materiales requeridos o si tienes repuestos...',
                   ),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 20),
 
-                // District & Address
+                // Interactive Map Section
+                Text(
+                  'Ubicación en el Mapa',
+                  style: AppTypography.labelLg.copyWith(color: AppColors.neutral),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Mueve el marcador o pulsa el botón GPS para ubicar tu domicilio con precisión:',
+                  style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                ),
+                const SizedBox(height: 10),
+                ChambaInteractiveMap(
+                  mode: MapDisplayMode.selectLocation,
+                  height: 220,
+                  initialCenter: LatLng(_selectedLat, _selectedLng),
+                  onLocationChanged: (pos, name) {
+                    setState(() {
+                      _selectedLat = pos.latitude;
+                      _selectedLng = pos.longitude;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // District & Address & Reference
                 Row(
                   children: [
                     Expanded(
@@ -211,7 +245,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
                           TextFormField(
                             controller: _districtController,
                             decoration: const InputDecoration(
-                              hintText: 'Chiclayo / La Victoria',
+                              hintText: 'Santa Victoria / Chiclayo',
                             ),
                           ),
                         ],
@@ -224,7 +258,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Dirección o referencia',
+                            'Dirección',
                             style: AppTypography.labelLg.copyWith(color: AppColors.neutral),
                           ),
                           const SizedBox(height: 8),
@@ -238,6 +272,20 @@ class _PostJobScreenState extends State<PostJobScreen> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 14),
+
+                Text(
+                  'Referencia del domicilio',
+                  style: AppTypography.labelLg.copyWith(color: AppColors.neutral),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _referenceController,
+                  decoration: const InputDecoration(
+                    hintText: 'Ej. Frente a parque, portón marrón, timbre blanco',
+                    prefixIcon: Icon(Icons.near_me_outlined, size: 20),
+                  ),
                 ),
                 const SizedBox(height: 20),
 
@@ -270,37 +318,26 @@ class _PostJobScreenState extends State<PostJobScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Budget Stepper (inDrive negotiation centerpiece)
-                Text(
-                  'Tu Presupuesto Propuesto (S/.)',
-                  style: AppTypography.labelLg.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Fija cuánto estás dispuesto a pagar. Los especialistas podrán aceptar tu precio o enviarte una contraoferta.',
-                  style: AppTypography.bodyMd.copyWith(color: AppColors.muted),
-                ),
-                const SizedBox(height: 12),
+                // inDrive Style Budget Stepper Dial
                 PriceDialStepper(
                   currentPrice: _proposedBudget,
                   minPrice: 15.0,
-                  maxPrice: 1500.0,
-                  step: 5.0,
-                  label: 'Presupuesto Inicial en Soles',
-                  onPriceChanged: (newPrice) {
-                    setState(() => _proposedBudget = newPrice);
+                  maxPrice: 2000.0,
+                  label: 'Tu Presupuesto Inicial Ofrecido',
+                  onPriceChanged: (val) {
+                    setState(() => _proposedBudget = val);
                   },
                 ),
                 const SizedBox(height: 28),
 
+                // Publish CTA
                 ChambaButton(
-                  label: 'Publicar Solicitud (S/. ${_proposedBudget.toStringAsFixed(0)})',
+                  label: _isPublishing
+                      ? 'Publicando solicitud...'
+                      : 'Publicar Solicitud en Chiclayo',
                   leadingIcon: Icons.send_rounded,
                   isLoading: _isPublishing,
-                  onPressed: _submit,
+                  onPressed: _isPublishing ? null : _submit,
                 ),
                 const SizedBox(height: 16),
               ],

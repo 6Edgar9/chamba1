@@ -49,6 +49,14 @@ class JobRequest {
   final String? workerId;
   final String? workerName;
 
+  final double latitude;
+  final double longitude;
+  final String reference;
+  final String? paymentMethod;
+  final int? rating;
+  final String? reviewComment;
+  final bool isPaid;
+
   const JobRequest({
     required this.id,
     required this.title,
@@ -58,6 +66,9 @@ class JobRequest {
     required this.budget,
     required this.district,
     required this.address,
+    this.latitude = -6.7760,
+    this.longitude = -79.8436,
+    this.reference = '',
     required this.distanceKm,
     required this.urgency,
     this.status = JobStatus.searching,
@@ -69,6 +80,10 @@ class JobRequest {
     this.acceptedBidId,
     this.workerId,
     this.workerName,
+    this.paymentMethod,
+    this.rating,
+    this.reviewComment,
+    this.isPaid = false,
   });
 
   JobRequest copyWith({
@@ -77,6 +92,9 @@ class JobRequest {
     double? budget,
     String? district,
     String? address,
+    double? latitude,
+    double? longitude,
+    String? reference,
     double? distanceKm,
     String? urgency,
     JobStatus? status,
@@ -84,6 +102,10 @@ class JobRequest {
     String? acceptedBidId,
     String? workerId,
     String? workerName,
+    String? paymentMethod,
+    int? rating,
+    String? reviewComment,
+    bool? isPaid,
   }) {
     return JobRequest(
       id: id,
@@ -94,6 +116,9 @@ class JobRequest {
       budget: budget ?? this.budget,
       district: district ?? this.district,
       address: address ?? this.address,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      reference: reference ?? this.reference,
       distanceKm: distanceKm ?? this.distanceKm,
       urgency: urgency ?? this.urgency,
       status: status ?? this.status,
@@ -105,6 +130,10 @@ class JobRequest {
       acceptedBidId: acceptedBidId ?? this.acceptedBidId,
       workerId: workerId ?? this.workerId,
       workerName: workerName ?? this.workerName,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      rating: rating ?? this.rating,
+      reviewComment: reviewComment ?? this.reviewComment,
+      isPaid: isPaid ?? this.isPaid,
     );
   }
 }

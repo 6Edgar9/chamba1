@@ -4,11 +4,13 @@ import '../../core/theme/app_typography.dart';
 import '../../core/widgets/chamba_button.dart';
 import '../../core/widgets/chamba_badge.dart';
 import '../state/app_state.dart';
-import 'client_home_screen.dart';
-import 'available_jobs_screen.dart';
+import 'client_shell.dart';
+import 'worker_shell.dart';
 
 class RoleSelectionScreen extends StatefulWidget {
-  const RoleSelectionScreen({super.key});
+  final AppState? appState;
+
+  const RoleSelectionScreen({super.key, this.appState});
 
   @override
   State<RoleSelectionScreen> createState() => _RoleSelectionScreenState();
@@ -115,17 +117,19 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                 label: isClient ? 'Continuar como Cliente' : 'Continuar como Especialista',
                 leadingIcon: isClient ? Icons.search : Icons.handyman,
                 onPressed: () {
+                  final state = widget.appState ?? AppState();
+                  state.switchRole(_selectedRole);
                   if (isClient) {
                     Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(
-                        builder: (_) => const ClientHomeScreen(),
+                        builder: (_) => ClientShell(appState: state),
                       ),
                       (route) => false,
                     );
                   } else {
                     Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(
-                        builder: (_) => const AvailableJobsScreen(),
+                        builder: (_) => WorkerShell(appState: state),
                       ),
                       (route) => false,
                     );
