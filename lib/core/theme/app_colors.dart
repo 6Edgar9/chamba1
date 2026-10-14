@@ -53,4 +53,24 @@ class AppColors {
 
   static const Color quickCounterBg = Color(0x14B84A1C);
   static const Color quickCounterBorder = Color(0x33B84A1C);
+
+  // Worker Professional Role Palette (Emerald / Deep Forest)
+  static const Color workerPrimary = Color(0xFF0F4C3A);
+  static const Color workerPrimaryContainer = Color(0xFF16654F);
+  static const Color workerAccent = Color(0xFF0D9488); // Vibrant professional teal
+  static const Color workerAccentLight = Color(0xFFCCFBF1);
+  static const Color workerSurface = Color(0xFFF0FDF4);
+  static const Color workerSurfaceContainer = Color(0xFFDCFCE7);
+
+  // Chamba SOS Emergency Palette
+  static const Color sosRed = Color(0xFFDC2626);
+  static const Color sosRedDark = Color(0xFF991B1B);
+  static const Color sosRedLight = Color(0xFFFEE2E2);
+  static const Color sosAmber = Color(0xFFF59E0B);
+  static const Color sosGlow = Color(0x55DC2626);
+
+  // Escudo de Confianza Palette
+  static const Color shieldReniec = Color(0xFF2563EB); // Royal Blue
+  static const Color shieldPolice = Color(0xFF059669); // Police clean record Emerald
+  static const Color shieldWarranty = Color(0xFFD97706); // Golden Amber Guarantee
 }

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/chamba_card.dart';
+import '../../core/widgets/chamba_badge.dart';
+import '../../core/widgets/before_after_slider.dart';
+import '../widgets/worker_earnings_dashboard.dart';
 import '../state/app_state.dart';
 import 'create_worker_profile_screen.dart';
 import 'notifications_sheet.dart';
@@ -114,6 +117,12 @@ class WorkerProfileScreen extends StatelessWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
+                  TrustShieldBadgesRow(
+                    isIdVerified: profile.isIdVerified,
+                    hasCleanRecord: profile.hasCleanRecord,
+                    offersWarranty: profile.offersWarranty,
+                  ),
                   const SizedBox(height: 14),
                   const Divider(height: 1, color: Color(0x14202D33)),
                   const SizedBox(height: 12),
@@ -138,26 +147,74 @@ class WorkerProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Worker Performance Metrics
-            Row(
-              children: [
-                Expanded(
-                  child: _buildMetricTile(
-                    'S/. 580',
-                    'Ganancias de la semana',
-                    Icons.payments_rounded,
-                  ),
+            // FEATURE 4: Worker Wallet, Weekly Bar Chart, and Gamification Level Dashboard
+            WorkerEarningsDashboard(appState: appState),
+            const SizedBox(height: 16),
+
+            // Portfolio Before & After Section for Worker
+            if (profile.portfolioCases.isNotEmpty) ...[
+              ChambaCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Mi Portafolio Antes y Después',
+                          style: AppTypography.headlineSm.copyWith(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.workerAccent.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${profile.portfolioCases.length} obras',
+                            style: AppTypography.labelSm.copyWith(
+                              color: AppColors.workerAccent,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Tus clientes pueden deslizar la barra interactiva para validar tu calidad de acabado.',
+                      style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                    ),
+                    const SizedBox(height: 12),
+                    ...profile.portfolioCases.take(2).map((caseItem) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              caseItem.title,
+                              style: AppTypography.bodyLgMedium.copyWith(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            BeforeAfterSlider(caseData: caseItem),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildMetricTile(
-                    '${profile.serviceRadiusKm} km',
-                    'Radio de Cobertura',
-                    Icons.near_me_rounded,
-                  ),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 16),
+            ],
             const SizedBox(height: 20),
 
             // Switch to Client Mode Banner
@@ -278,36 +335,6 @@ class WorkerProfileScreen extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildMetricTile(String value, String label, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x14202D33)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 20, color: AppColors.primary),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: AppTypography.headlineSm.copyWith(
-              fontWeight: FontWeight.w800,
-              color: AppColors.secondary,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: AppTypography.labelSm.copyWith(color: AppColors.muted),
-          ),
-        ],
       ),
     );
   }

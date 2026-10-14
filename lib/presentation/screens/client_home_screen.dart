@@ -4,6 +4,7 @@ import '../../core/theme/app_typography.dart';
 import '../../core/widgets/chamba_button.dart';
 import '../../core/widgets/chamba_card.dart';
 import '../../core/widgets/chamba_badge.dart';
+import '../../core/widgets/role_switcher_pill.dart';
 import '../../data/models/category.dart';
 import '../../data/models/job_request.dart';
 import '../state/app_state.dart';
@@ -28,8 +29,10 @@ class ClientHomeScreen extends StatefulWidget {
   State<ClientHomeScreen> createState() => _ClientHomeScreenState();
 }
 
-class _ClientHomeScreenState extends State<ClientHomeScreen> {
+class _ClientHomeScreenState extends State<ClientHomeScreen>
+    with SingleTickerProviderStateMixin {
   late AppState _appState;
+  late AnimationController _radarController;
   int _selectedIndex = 0;
 
   @override
@@ -37,6 +40,10 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
     super.initState();
     _appState = widget.appState ?? AppState();
     _appState.addListener(_onStateChange);
+    _radarController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
   }
 
   void _onStateChange() {
@@ -46,6 +53,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
   @override
   void dispose() {
     _appState.removeListener(_onStateChange);
+    _radarController.dispose();
     super.dispose();
   }
 
@@ -105,43 +113,21 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                         ),
                       ],
                     ),
-                    InkWell(
-                      borderRadius: BorderRadius.circular(20),
-                      onTap: () {
-                        _appState.switchRole(UserRole.worker);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceContainer,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0x1F173B4D), width: 1),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.swap_horiz,
-                              size: 16,
-                              color: AppColors.primary,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Modo Técnico',
-                              style: AppTypography.labelSm.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    RoleSwitcherPill(
+                      appState: _appState,
+                      compact: false,
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 18),
 
-                // Hero CTA Banner: Publicar Chamba
+                // FEATURE 2: Chamba SOS Emergency Radar Section (< 30 min)
+                _buildChambaSosSection(),
+
+                const SizedBox(height: 18),
+
+                // Hero CTA Banner: Publicar Chamba Standard
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -434,141 +420,332 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
     );
   }
 
-  Widget _buildActiveJobCard(JobRequest job) {
-    final hasOffers = job.bids.isNotEmpty;
-    final isOnTheWayOrActive = job.status == JobStatus.onTheWay || job.status == JobStatus.inProgress;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14.0),
-      child: ChambaCard(
-        onTap: () {
-          _appState.setActiveJob(job.id);
-          if (isOnTheWayOrActive) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => JobTrackingScreen(appState: _appState, job: job),
+  Widget _buildChambaSosSection() {
+    return AnimatedBuilder(
+      animation: _radarController,
+      builder: (context, child) {
+        return Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF991B1B), Color(0xFFDC2626), Color(0xFFB91C1C)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.sosRed.withValues(alpha: 0.35),
+                blurRadius: 18,
+                offset: const Offset(0, 6),
               ),
-            );
-          } else {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => ReceivedBidsScreen(appState: _appState, job: job),
-              ),
-            );
-          }
-        },
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceContainer,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              job.categoryName.toUpperCase(),
-                              style: AppTypography.labelSm.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 9,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            job.district,
-                            style: AppTypography.labelSm.copyWith(color: AppColors.muted),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        job.title,
-                        style: AppTypography.bodyLgMedium.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.neutral,
-                        ),
-                      ),
-                    ],
-                  ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              // Radar Pulse Ripple Animation
+              Positioned(
+                right: -20,
+                top: -20,
+                width: 160,
+                height: 160,
+                child: CustomPaint(
+                  painter: SosRadarPainter(_radarController.value),
                 ),
-                const SizedBox(width: 10),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.sosRed,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'CHAMBA SOS • < 30 MIN',
+                                style: AppTypography.labelSm.copyWith(
+                                  color: AppColors.sosRedDark,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 10,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.25),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'Tarifa 1.35x',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                     Text(
-                      'S/. ${job.budget.toStringAsFixed(0)}',
-                      style: AppTypography.numericBid.copyWith(
-                        color: AppColors.secondary,
+                      '¿Emergencia en Casa?',
+                      style: AppTypography.headlineSm.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
                         fontSize: 22,
                       ),
                     ),
+                    const SizedBox(height: 4),
                     Text(
-                      'Presupuesto',
-                      style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                      'Fugas de agua, cortocircuitos o chapas atascadas. Técnicos de guardia en Chiclayo salen en moto de inmediato.',
+                      style: AppTypography.bodyMd.copyWith(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: 13,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: AppColors.sosRedDark,
+                          elevation: 3,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        icon: const Icon(Icons.flash_on_rounded, color: AppColors.sosRed, size: 20),
+                        label: Text(
+                          'Pedir Chamba SOS Ahora (< 30 min)',
+                          style: AppTypography.labelLg.copyWith(
+                            color: AppColors.sosRedDark,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => PostJobScreen(
+                                appState: _appState,
+                                isSosInitial: true,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Divider(height: 1, color: Color(0x14202D33)),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                if (hasOffers) ...[
-                  ChambaBadge.counterReceived(
-                    label: '${job.bids.length} Ofertas recibidas',
-                  ),
-                  Row(
-                    children: [
-                      Text(
-                        'Revisar ofertas',
-                        style: AppTypography.labelMd.copyWith(
-                          color: AppColors.secondary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.secondary),
-                    ],
-                  ),
-                ] else if (isOnTheWayOrActive) ...[
-                  ChambaBadge.confirmed(label: job.status.displayLabel),
-                  Row(
-                    children: [
-                      Text(
-                        'Ver seguimiento',
-                        style: AppTypography.labelMd.copyWith(
-                          color: AppColors.tertiary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.tertiary),
-                    ],
-                  ),
-                ] else ...[
-                  const ChambaBadge.negotiating(label: 'Buscando especialistas...'),
-                  Text(
-                    'Ver detalles',
-                    style: AppTypography.labelMd.copyWith(color: AppColors.muted),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildActiveJobCard(JobRequest job) {
+    final hasOffers = job.bids.isNotEmpty;
+    final isOnTheWayOrActive = job.status == JobStatus.onTheWay || job.status == JobStatus.inProgress;
+    final isSos = job.isSos;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14.0),
+      child: Container(
+        decoration: isSos
+            ? BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.sosRed, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.sosRed.withValues(alpha: 0.20),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
                   ),
                 ],
-              ],
-            ),
-          ],
+              )
+            : null,
+        child: ChambaCard(
+          onTap: () {
+            _appState.setActiveJob(job.id);
+            if (isOnTheWayOrActive) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => JobTrackingScreen(appState: _appState, job: job),
+                ),
+              );
+            } else {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ReceivedBidsScreen(appState: _appState, job: job),
+                ),
+              );
+            }
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            if (isSos) ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                margin: const EdgeInsets.only(right: 6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.sosRedLight,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  '🚨 SOS PRIORIDAD',
+                                  style: AppTypography.labelSm.copyWith(
+                                    color: AppColors.sosRed,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 9,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceContainer,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                job.categoryName.toUpperCase(),
+                                style: AppTypography.labelSm.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 9,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                job.district,
+                                style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          job.title,
+                          style: AppTypography.bodyLgMedium.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: isSos ? AppColors.sosRedDark : AppColors.neutral,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'S/. ${job.budget.toStringAsFixed(0)}',
+                        style: AppTypography.numericBid.copyWith(
+                          color: isSos ? AppColors.sosRed : AppColors.secondary,
+                          fontSize: 22,
+                        ),
+                      ),
+                      Text(
+                        isSos ? 'Tarifa SOS' : 'Presupuesto',
+                        style: AppTypography.labelSm.copyWith(
+                          color: isSos ? AppColors.sosRed : AppColors.muted,
+                          fontWeight: isSos ? FontWeight.w700 : FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1, color: Color(0x14202D33)),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  if (hasOffers) ...[
+                    ChambaBadge.counterReceived(
+                      label: '${job.bids.length} Ofertas recibidas',
+                    ),
+                    Row(
+                      children: [
+                        Text(
+                          'Revisar ofertas',
+                          style: AppTypography.labelMd.copyWith(
+                            color: AppColors.secondary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.secondary),
+                      ],
+                    ),
+                  ] else if (isOnTheWayOrActive) ...[
+                    ChambaBadge.confirmed(label: job.status.displayLabel),
+                    Row(
+                      children: [
+                        Text(
+                          'Ver seguimiento',
+                          style: AppTypography.labelMd.copyWith(
+                            color: AppColors.tertiary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.tertiary),
+                      ],
+                    ),
+                  ] else ...[
+                    isSos
+                        ? const ChambaBadge.sos(label: '🚨 Alerta SOS Enviada (<30 min)')
+                        : const ChambaBadge.negotiating(label: 'Buscando especialistas...'),
+                    Text(
+                      'Ver detalles',
+                      style: AppTypography.labelMd.copyWith(color: AppColors.muted),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -585,75 +762,117 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
             ),
           );
         },
-        child: Row(
+        child: Column(
           children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: AppColors.primary,
-              child: Text(
-                worker.avatarInitials,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: AppColors.primary,
+                  child: Text(
+                    worker.avatarInitials,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          worker.name,
-                          style: AppTypography.bodyLgMedium.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.neutral,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              worker.name,
+                              style: AppTypography.bodyLgMedium.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.neutral,
+                              ),
+                            ),
                           ),
-                        ),
+                          if (worker.isVerified)
+                            const Icon(
+                              Icons.verified,
+                              size: 16,
+                              color: AppColors.tertiary,
+                            ),
+                        ],
                       ),
-                      if (worker.isVerified)
-                        const Icon(
-                          Icons.verified,
-                          size: 16,
-                          color: AppColors.tertiary,
-                        ),
+                      const SizedBox(height: 2),
+                      Text(
+                        worker.skills.take(2).join(' • '),
+                        style: AppTypography.labelMd.copyWith(color: AppColors.muted),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.star, size: 14, color: Colors.amber),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${worker.rating}',
+                            style: AppTypography.labelSm.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.neutral,
+                            ),
+                          ),
+                          Text(
+                            ' (${worker.completedJobs} chambas)',
+                            style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    worker.skills.take(2).join(' • '),
-                    style: AppTypography.labelMd.copyWith(color: AppColors.muted),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.star, size: 14, color: Colors.amber),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${worker.rating}',
-                        style: AppTypography.labelSm.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.neutral,
-                        ),
-                      ),
-                      Text(
-                        ' (${worker.completedJobs} chambas)',
-                        style: AppTypography.labelSm.copyWith(color: AppColors.muted),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(Icons.chevron_right, color: AppColors.muted),
+              ],
             ),
-            const SizedBox(width: 8),
-            const Icon(Icons.chevron_right, color: AppColors.muted),
+            const SizedBox(height: 10),
+            // Trust Shield Micro Row
+            TrustShieldBadgesRow(
+              isIdVerified: worker.isIdVerified ?? true,
+              hasCleanRecord: worker.hasCleanRecord ?? true,
+              offersWarranty: worker.offersWarranty ?? true,
+            ),
           ],
         ),
       ),
     );
   }
 }
+
+/// Custom radar waves painter for Chamba SOS
+class SosRadarPainter extends CustomPainter {
+  final double animationValue;
+
+  SosRadarPainter(this.animationValue);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final maxRadius = size.width / 2;
+
+    for (int i = 0; i < 3; i++) {
+      final progress = (animationValue + (i / 3.0)) % 1.0;
+      final radius = progress * maxRadius;
+      final opacity = (1.0 - progress).clamp(0.0, 1.0);
+
+      final paint = Paint()
+        ..color = Colors.white.withValues(alpha: opacity * 0.4)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0;
+
+      canvas.drawCircle(center, radius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant SosRadarPainter oldDelegate) =>
+      oldDelegate.animationValue != animationValue;
+}
+

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
@@ -11,6 +12,13 @@ import '../state/app_state.dart';
 import 'worker_profile_detail_screen.dart';
 import 'chat_screen.dart';
 import 'job_tracking_screen.dart';
+
+enum BidFilter {
+  all,
+  bestRated,
+  fastest,
+  lowestPrice,
+}
 
 class ReceivedBidsScreen extends StatefulWidget {
   final AppState appState;
@@ -28,6 +36,12 @@ class ReceivedBidsScreen extends StatefulWidget {
 
 class _ReceivedBidsScreenState extends State<ReceivedBidsScreen> {
   late JobRequest _currentJob;
+  BidFilter _selectedFilter = BidFilter.all;
+
+  // Voice Note Playback state
+  String? _currentlyPlayingBidId;
+  int _playbackSecond = 0;
+  Timer? _playbackTimer;
 
   @override
   void initState() {
@@ -48,8 +62,56 @@ class _ReceivedBidsScreenState extends State<ReceivedBidsScreen> {
 
   @override
   void dispose() {
+    _playbackTimer?.cancel();
     widget.appState.removeListener(_onStateUpdate);
     super.dispose();
+  }
+
+  void _toggleVoicePlayback(Bid bid) {
+    if (_currentlyPlayingBidId == bid.id) {
+      _playbackTimer?.cancel();
+      setState(() {
+        _currentlyPlayingBidId = null;
+        _playbackSecond = 0;
+      });
+    } else {
+      _playbackTimer?.cancel();
+      setState(() {
+        _currentlyPlayingBidId = bid.id;
+        _playbackSecond = 0;
+      });
+
+      final totalDuration = bid.voiceDurationSeconds > 0 ? bid.voiceDurationSeconds : 10;
+      _playbackTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (_playbackSecond >= totalDuration) {
+          timer.cancel();
+          setState(() {
+            _currentlyPlayingBidId = null;
+            _playbackSecond = 0;
+          });
+        } else {
+          setState(() => _playbackSecond++);
+        }
+      });
+    }
+  }
+
+  List<Bid> _getSortedBids(List<Bid> bids) {
+    final list = List<Bid>.from(bids);
+    switch (_selectedFilter) {
+      case BidFilter.bestRated:
+        list.sort((a, b) => b.workerRating.compareTo(a.workerRating));
+        break;
+      case BidFilter.fastest:
+        list.sort((a, b) => a.etaMinutes.compareTo(b.etaMinutes));
+        break;
+      case BidFilter.lowestPrice:
+        list.sort((a, b) => (a.counterAmount ?? a.amount).compareTo(b.counterAmount ?? b.amount));
+        break;
+      case BidFilter.all:
+        break;
+    }
+    return list;
   }
 
   void _showCounterOfferModal(Bid bid) {
@@ -99,6 +161,7 @@ class _ReceivedBidsScreenState extends State<ReceivedBidsScreen> {
                     const SizedBox(height: 20),
                     PriceDialStepper(
                       currentPrice: counterValue,
+                      recommendedPrice: widget.job.budget,
                       minPrice: 15.0,
                       maxPrice: 1500.0,
                       label: 'Tu Contraoferta en Soles',
@@ -138,7 +201,8 @@ class _ReceivedBidsScreenState extends State<ReceivedBidsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bids = _currentJob.bids;
+    final rawBids = _currentJob.bids;
+    final sortedBids = _getSortedBids(rawBids);
 
     return Scaffold(
       backgroundColor: AppColors.canvas,
@@ -170,94 +234,82 @@ class _ReceivedBidsScreenState extends State<ReceivedBidsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Summary card of job
+              // Header Request Card
               ChambaCard(
-                color: AppColors.surfaceContainerLow,
+                color: _currentJob.isSos ? const Color(0xFFFFF7F5) : AppColors.primary,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
+                        if (_currentJob.isSos)
+                          const ChambaBadge.sos(label: 'URGENCIA SOS')
+                        else
+                          ChambaBadge.negotiating(label: _currentJob.status.displayLabel),
                         Text(
-                          _currentJob.categoryName,
-                          style: AppTypography.labelSm.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w800,
+                          'S/. ${_currentJob.budget.toStringAsFixed(0)}',
+                          style: AppTypography.numericBid.copyWith(
+                            color: _currentJob.isSos ? AppColors.sosRed : Colors.white,
+                            fontSize: 24,
                           ),
-                        ),
-                        ChambaBadge.negotiating(
-                          label: '${bids.length} propuestas',
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     Text(
                       _currentJob.title,
                       style: AppTypography.headlineSm.copyWith(
+                        color: _currentJob.isSos ? AppColors.sosRedDark : Colors.white,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.neutral,
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.location_on_outlined, size: 14, color: AppColors.muted),
-                            const SizedBox(width: 4),
-                            Text(
-                              _currentJob.district,
-                              style: AppTypography.labelMd.copyWith(color: AppColors.muted),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Text(
-                              'Tu presupuesto: ',
-                              style: AppTypography.labelMd.copyWith(color: AppColors.muted),
-                            ),
-                            Text(
-                              'S/. ${_currentJob.budget.toStringAsFixed(0)}',
-                              style: AppTypography.labelLg.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_currentJob.district} • ${_currentJob.address}',
+                      style: AppTypography.labelSm.copyWith(
+                        color: _currentJob.isSos ? AppColors.sosRed : Colors.white70,
+                      ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(height: 18),
 
-              const SizedBox(height: 20),
+              // FEATURE 2: Quick Filter Chips
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildFilterChip('Todos (${rawBids.length})', BidFilter.all),
+                    _buildFilterChip('⭐ Mejor calificados', BidFilter.bestRated),
+                    _buildFilterChip('⚡ Más rápidos', BidFilter.fastest),
+                    _buildFilterChip('💰 Precio más bajo', BidFilter.lowestPrice),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
 
-              // Subheading
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Icon(Icons.offline_bolt, color: AppColors.secondary, size: 20),
-                  const SizedBox(width: 8),
                   Text(
-                    'Cotizaciones en Tiempo Real',
+                    'Técnicos postulados (${sortedBids.length})',
                     style: AppTypography.headlineSm.copyWith(
                       fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
+                      color: AppColors.neutral,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Text(
-                'Elige al técnico que prefieras o contraoferta para acordar un precio justo.',
+                'Compara precios, tiempo de llegada y escucha sus notas de voz explicativas.',
                 style: AppTypography.bodyMd.copyWith(color: AppColors.muted),
               ),
               const SizedBox(height: 16),
 
-              if (bids.isEmpty) ...[
+              if (sortedBids.isEmpty) ...[
                 Container(
                   padding: const EdgeInsets.all(28),
                   decoration: BoxDecoration(
@@ -278,7 +330,7 @@ class _ReceivedBidsScreenState extends State<ReceivedBidsScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Los especialistas en tu zona han sido notificados. Recibirás propuestas en breve.',
+                        'Los especialistas en tu zona han sido notificados. Recibirás propuestas con audio en breve.',
                         textAlign: TextAlign.center,
                         style: AppTypography.bodyMd.copyWith(color: AppColors.muted),
                       ),
@@ -286,12 +338,34 @@ class _ReceivedBidsScreenState extends State<ReceivedBidsScreen> {
                   ),
                 ),
               ] else ...[
-                ...bids.map((bid) => _buildBidCard(bid)),
+                ...sortedBids.map((bid) => _buildBidCard(bid)),
               ],
               const SizedBox(height: 20),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, BidFilter filter) {
+    final isSelected = _selectedFilter == filter;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: ChoiceChip(
+        selected: isSelected,
+        label: Text(label),
+        labelStyle: TextStyle(
+          color: isSelected ? Colors.white : AppColors.neutral,
+          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+          fontSize: 12,
+        ),
+        selectedColor: AppColors.primary,
+        backgroundColor: Colors.white,
+        showCheckmark: false,
+        onSelected: (val) {
+          if (val) setState(() => _selectedFilter = filter);
+        },
       ),
     );
   }
@@ -302,6 +376,8 @@ class _ReceivedBidsScreenState extends State<ReceivedBidsScreen> {
       orElse: () => widget.appState.workers.first,
     );
     final hasCounter = bid.counterAmount != null;
+    final isPlaying = _currentlyPlayingBidId == bid.id;
+    final totalVoiceDuration = bid.voiceDurationSeconds > 0 ? bid.voiceDurationSeconds : 12;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
@@ -366,7 +442,7 @@ class _ReceivedBidsScreenState extends State<ReceivedBidsScreen> {
                             ),
                           ),
                           Text(
-                            ' (${bid.workerCompletedJobs} trabajos)',
+                            ' (${bid.workerCompletedJobs} chambas)',
                             style: AppTypography.labelSm.copyWith(color: AppColors.muted),
                           ),
                           const SizedBox(width: 10),
@@ -387,7 +463,116 @@ class _ReceivedBidsScreenState extends State<ReceivedBidsScreen> {
               ],
             ),
 
-            if (bid.message.isNotEmpty) ...[
+            // FEATURE 2: COMPACT VOICE NOTE PLAYER (If bid has audio)
+            if (bid.hasVoiceNote) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFF0FDF4), Color(0xFFDCFCE7)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFF86EFAC)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        InkWell(
+                          onTap: () => _toggleVoicePlayback(bid),
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF16A34A),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.mic, size: 13, color: Color(0xFF16A34A)),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Nota de Voz del Técnico',
+                                        style: AppTypography.labelSm.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                          color: const Color(0xFF15803D),
+                                          fontSize: 11.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Text(
+                                    isPlaying
+                                        ? '0:${_playbackSecond.toString().padLeft(2, "0")} / 0:${totalVoiceDuration.toString().padLeft(2, "0")}'
+                                        : '0:${totalVoiceDuration.toString().padLeft(2, "0")}',
+                                    style: AppTypography.labelSm.copyWith(
+                                      color: const Color(0xFF15803D),
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              // Waveform visualization
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: List.generate(24, (i) {
+                                  final isPassed = isPlaying &&
+                                      (i / 24.0) <= (_playbackSecond / totalVoiceDuration);
+                                  final barHeight = 4.0 + ((i * 7) % 14);
+                                  return Container(
+                                    width: 3.5,
+                                    height: barHeight,
+                                    decoration: BoxDecoration(
+                                      color: isPassed
+                                          ? const Color(0xFF16A34A)
+                                          : const Color(0xFF86EFAC),
+                                      borderRadius: BorderRadius.circular(2),
+                                    ),
+                                  );
+                                }),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (bid.voiceTranscriptPreview != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        '"${bid.voiceTranscriptPreview}"',
+                        style: AppTypography.labelSm.copyWith(
+                          fontStyle: FontStyle.italic,
+                          color: const Color(0xFF166534),
+                          fontSize: 11.5,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ] else if (bid.message.isNotEmpty) ...[
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(12),
@@ -406,9 +591,38 @@ class _ReceivedBidsScreenState extends State<ReceivedBidsScreen> {
               ),
             ],
 
-            const SizedBox(height: 16),
-            const Divider(height: 1, color: Color(0x14202D33)),
+            // FEATURE 2: Offer Inclusions Tags
+            if (bid.inclusionTags.isNotEmpty || bid.includesMaterials) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  if (bid.includesMaterials && !bid.inclusionTags.contains('Incluye materiales'))
+                    _buildInclusionPill('✓ Incluye materiales', const Color(0xFF047857), const Color(0xFFD1FAE5)),
+                  ...bid.inclusionTags.map((tag) {
+                    final isMaterial = tag.contains('materiales');
+                    final isSpeed = tag.contains('25 min') || tag.contains('rápid');
+                    final isFree = tag.contains('gratis');
+                    final textColor = isMaterial
+                        ? const Color(0xFF047857)
+                        : (isSpeed
+                            ? const Color(0xFFB45309)
+                            : (isFree ? const Color(0xFF1E40AF) : AppColors.primary));
+                    final bgColor = isMaterial
+                        ? const Color(0xFFD1FAE5)
+                        : (isSpeed
+                            ? const Color(0xFFFEF3C7)
+                            : (isFree ? const Color(0xFFDBEAFE) : AppColors.surfaceContainer));
+                    return _buildInclusionPill(tag, textColor, bgColor);
+                  }),
+                ],
+              ),
+            ],
+
             const SizedBox(height: 14),
+            const Divider(height: 1, color: Color(0x14202D33)),
+            const SizedBox(height: 12),
 
             // Price negotiation comparison
             Row(
@@ -501,6 +715,25 @@ class _ReceivedBidsScreenState extends State<ReceivedBidsScreen> {
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInclusionPill(String label, Color textColor, Color bgColor) {
+    final displayLabel = label.startsWith('✓') ? label : '✓ $label';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        displayLabel,
+        style: TextStyle(
+          color: textColor,
+          fontWeight: FontWeight.w700,
+          fontSize: 10.5,
         ),
       ),
     );

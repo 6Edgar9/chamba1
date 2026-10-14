@@ -4,6 +4,7 @@ import '../../core/theme/app_typography.dart';
 import '../../core/widgets/chamba_button.dart';
 import '../../core/widgets/chamba_card.dart';
 import '../../core/widgets/chamba_badge.dart';
+import '../../core/widgets/before_after_slider.dart';
 import '../../data/models/worker_profile.dart';
 
 class WorkerProfileDetailScreen extends StatelessWidget {
@@ -75,14 +76,10 @@ class WorkerProfileDetailScreen extends StatelessWidget {
                       style: AppTypography.bodyMd.copyWith(color: AppColors.muted),
                     ),
                     const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (worker.isVerified)
-                          const ChambaBadge.verified(label: 'DNI Verificado (RENIEC)')
-                        else
-                          const ChambaBadge(label: 'En Proceso de Verificación'),
-                      ],
+                    TrustShieldBadgesRow(
+                      isIdVerified: worker.isIdVerified,
+                      hasCleanRecord: worker.hasCleanRecord,
+                      offersWarranty: worker.offersWarranty,
                     ),
                     const SizedBox(height: 18),
                     const Divider(height: 1, color: Color(0x14202D33)),
@@ -220,6 +217,132 @@ class WorkerProfileDetailScreen extends StatelessWidget {
               ),
 
               const SizedBox(height: 20),
+
+              // Before & After Interactive Portfolio Gallery
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Casos Resueltos (Antes y Después)',
+                          style: AppTypography.headlineSm.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Desliza la barra ◀ ▶ para comparar la avería vs. el resultado',
+                          style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.compare_arrows_rounded, size: 16, color: AppColors.primary),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${worker.portfolioCases.length} obras',
+                          style: AppTypography.labelSm.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              if (worker.portfolioCases.isEmpty)
+                ChambaCard(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        children: [
+                          Icon(Icons.photo_library_outlined, size: 40, color: AppColors.muted),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Este especialista aún no ha subido casos comparativos antes/después.',
+                            style: AppTypography.bodyMd.copyWith(color: AppColors.muted),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+              else
+                ...worker.portfolioCases.map((caseItem) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 18.0),
+                    child: ChambaCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  caseItem.title,
+                                  style: AppTypography.bodyLgMedium.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.neutral,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceContainer,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  caseItem.category,
+                                  style: AppTypography.labelSm.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primary,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(Icons.timer_outlined, size: 14, color: AppColors.muted),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${caseItem.timeSpent} • Presupuesto aprox: S/. ${caseItem.cost.toStringAsFixed(0)}',
+                                style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          BeforeAfterSlider(caseData: caseItem),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+
+              const SizedBox(height: 16),
 
               // Reviews
               Text(
