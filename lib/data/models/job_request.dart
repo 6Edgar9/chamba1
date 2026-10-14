@@ -9,6 +9,31 @@ enum JobStatus {
   cancelled,
 }
 
+enum EscrowStatus {
+  pendingDeposit,
+  heldInEscrow,
+  beforePhotoUploaded,
+  afterPhotoUploaded,
+  released,
+}
+
+extension EscrowStatusExtension on EscrowStatus {
+  String get displayLabel {
+    switch (this) {
+      case EscrowStatus.pendingDeposit:
+        return 'Pendiente de Depósito';
+      case EscrowStatus.heldInEscrow:
+        return 'Pago Protegido en Garantía';
+      case EscrowStatus.beforePhotoUploaded:
+        return 'Evidencia Inicial Registrada';
+      case EscrowStatus.afterPhotoUploaded:
+        return 'Evidencia Final Lista para Aprobación';
+      case EscrowStatus.released:
+        return 'Pago Liberado al Especialista';
+    }
+  }
+}
+
 extension JobStatusExtension on JobStatus {
   String get displayLabel {
     switch (this) {
@@ -57,6 +82,16 @@ class JobRequest {
   final String? reviewComment;
   final bool isPaid;
 
+  // New SOS & Security PIN & Escrow fields
+  final bool isSos;
+  final DateTime? sosExpiresAt;
+  final double urgencyMultiplier;
+  final String securityPin;
+  final bool isPinVerified;
+  final EscrowStatus escrowStatus;
+  final String? beforePhotoTag;
+  final String? afterPhotoTag;
+
   const JobRequest({
     required this.id,
     required this.title,
@@ -84,6 +119,14 @@ class JobRequest {
     this.rating,
     this.reviewComment,
     this.isPaid = false,
+    this.isSos = false,
+    this.sosExpiresAt,
+    this.urgencyMultiplier = 1.0,
+    this.securityPin = '4829',
+    this.isPinVerified = false,
+    this.escrowStatus = EscrowStatus.pendingDeposit,
+    this.beforePhotoTag,
+    this.afterPhotoTag,
   });
 
   JobRequest copyWith({
@@ -106,6 +149,14 @@ class JobRequest {
     int? rating,
     String? reviewComment,
     bool? isPaid,
+    bool? isSos,
+    DateTime? sosExpiresAt,
+    double? urgencyMultiplier,
+    String? securityPin,
+    bool? isPinVerified,
+    EscrowStatus? escrowStatus,
+    String? beforePhotoTag,
+    String? afterPhotoTag,
   }) {
     return JobRequest(
       id: id,
@@ -134,6 +185,14 @@ class JobRequest {
       rating: rating ?? this.rating,
       reviewComment: reviewComment ?? this.reviewComment,
       isPaid: isPaid ?? this.isPaid,
+      isSos: isSos ?? this.isSos,
+      sosExpiresAt: sosExpiresAt ?? this.sosExpiresAt,
+      urgencyMultiplier: urgencyMultiplier ?? this.urgencyMultiplier,
+      securityPin: securityPin ?? this.securityPin,
+      isPinVerified: isPinVerified ?? this.isPinVerified,
+      escrowStatus: escrowStatus ?? this.escrowStatus,
+      beforePhotoTag: beforePhotoTag ?? this.beforePhotoTag,
+      afterPhotoTag: afterPhotoTag ?? this.afterPhotoTag,
     );
   }
 }

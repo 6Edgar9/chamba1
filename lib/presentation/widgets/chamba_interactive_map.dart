@@ -20,6 +20,7 @@ class ChambaInteractiveMap extends StatefulWidget {
   final Function(LatLng position, String districtName)? onLocationChanged;
   final LatLng? workerPosition;
   final String? clientAddress;
+  final bool isSos;
 
   const ChambaInteractiveMap({
     super.key,
@@ -31,15 +32,18 @@ class ChambaInteractiveMap extends StatefulWidget {
     this.onLocationChanged,
     this.workerPosition,
     this.clientAddress,
+    this.isSos = false,
   });
 
   @override
   State<ChambaInteractiveMap> createState() => _ChambaInteractiveMapState();
 }
 
-class _ChambaInteractiveMapState extends State<ChambaInteractiveMap> {
+class _ChambaInteractiveMapState extends State<ChambaInteractiveMap>
+    with SingleTickerProviderStateMixin {
   late MapController _mapController;
   late LatLng _currentPin;
+  late AnimationController _radarController;
   bool _isLoadingGps = false;
 
   // Well-known Chiclayo districts for fast selection
@@ -56,6 +60,16 @@ class _ChambaInteractiveMapState extends State<ChambaInteractiveMap> {
     super.initState();
     _mapController = MapController();
     _currentPin = widget.initialCenter;
+    _radarController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _radarController.dispose();
+    super.dispose();
   }
 
   Future<void> _detectGpsLocation() async {
@@ -173,27 +187,63 @@ class _ChambaInteractiveMapState extends State<ChambaInteractiveMap> {
                   if (widget.mode != MapDisplayMode.approximate)
                     Marker(
                       point: _currentPin,
-                      width: 44,
-                      height: 44,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.secondary,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2.5),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x40000000),
-                              blurRadius: 6,
-                              offset: Offset(0, 3),
+                      width: widget.isSos ? 84 : 44,
+                      height: widget.isSos ? 84 : 44,
+                      child: widget.isSos
+                          ? AnimatedBuilder(
+                              animation: _radarController,
+                              builder: (context, _) {
+                                return Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    CustomPaint(
+                                      size: const Size(84, 84),
+                                      painter: _MapRadarPainter(_radarController.value),
+                                    ),
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.sosRed,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.white, width: 2.5),
+                                        boxShadow: const [
+                                          BoxShadow(
+                                            color: Color(0x66DC2626),
+                                            blurRadius: 10,
+                                            offset: Offset(0, 3),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Icon(
+                                        Icons.emergency_rounded,
+                                        color: Colors.white,
+                                        size: 24,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            )
+                          : Container(
+                              decoration: BoxDecoration(
+                                color: AppColors.secondary,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2.5),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Color(0x40000000),
+                                    blurRadius: 6,
+                                    offset: Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.home_filled,
+                                color: Colors.white,
+                                size: 22,
+                              ),
                             ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.home_filled,
-                          color: Colors.white,
-                          size: 22,
-                        ),
-                      ),
                     ),
 
                   // Worker Live Moving Marker
@@ -248,7 +298,13 @@ class _ChambaInteractiveMapState extends State<ChambaInteractiveMap> {
           ),
 
           // Top Info Banner depending on mode
-          if (widget.mode == MapDisplayMode.approximate)
+          if (widget.isSos)
+            const PositionEdgeBanner(
+              icon: Icons.emergency_rounded,
+              label: '🚨 RADAR SOS ACTIVO • Atención prioritaria en camino (< 30 min)',
+              color: AppColors.sosRed,
+            )
+          else if (widget.mode == MapDisplayMode.approximate)
             PositionEdgeBanner(
               icon: Icons.shield_outlined,
               label: 'Zona aproximada (Radio 500m) • Dirección exacta al ser contratado',
@@ -292,6 +348,37 @@ class _ChambaInteractiveMapState extends State<ChambaInteractiveMap> {
     );
   }
 }
+
+class _MapRadarPainter extends CustomPainter {
+  final double progress;
+
+  _MapRadarPainter(this.progress);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final maxRadius = size.width / 2;
+
+    for (int i = 0; i < 3; i++) {
+      final waveProgress = (progress + (i * 0.33)) % 1.0;
+      final radius = 22.0 + (maxRadius - 22.0) * waveProgress;
+      final opacity = (1.0 - waveProgress).clamp(0.0, 1.0) * 0.5;
+
+      final paint = Paint()
+        ..color = AppColors.sosRed.withValues(alpha: opacity)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0;
+
+      canvas.drawCircle(center, radius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _MapRadarPainter oldDelegate) {
+    return oldDelegate.progress != progress;
+  }
+}
+
 
 class PositionEdgeBanner extends StatelessWidget {
   final IconData icon;

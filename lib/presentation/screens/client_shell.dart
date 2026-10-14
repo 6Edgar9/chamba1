@@ -36,8 +36,11 @@ class _ClientShellState extends State<ClientShell> {
     if (mounted) {
       if (widget.appState.isWorker) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => WorkerShell(appState: widget.appState),
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 350),
+            pageBuilder: (context, animation, secondaryAnimation) => WorkerShell(appState: widget.appState),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+                FadeTransition(opacity: animation, child: child),
           ),
         );
       } else {
@@ -116,3 +119,4 @@ class _ClientShellState extends State<ClientShell> {
     );
   }
 }
+

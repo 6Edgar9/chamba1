@@ -16,7 +16,8 @@ void main() {
           home: ClientShell(appState: appState),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       // Check BottomNavigationBar items
       expect(find.text('Inicio'), findsOneWidget);
@@ -26,17 +27,20 @@ void main() {
 
       // Tap on Solicitudes tab
       await tester.tap(find.text('Solicitudes'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('Mis Solicitudes'), findsOneWidget);
 
       // Tap on Mensajes tab
       await tester.tap(find.text('Mensajes').last);
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('Mensajes'), findsWidgets);
 
       // Tap on Perfil tab
       await tester.tap(find.text('Perfil'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('Mi Perfil'), findsOneWidget);
       expect(find.text('Lucía Fernández'), findsOneWidget);
     });
@@ -51,7 +55,8 @@ void main() {
           home: WorkerShell(appState: appState),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       // Check Worker BottomNavigationBar items
       expect(find.text('Chambas'), findsOneWidget);
@@ -61,12 +66,14 @@ void main() {
 
       // Tap on Mis Trabajos tab
       await tester.tap(find.text('Mis Trabajos'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('Mis Trabajos'), findsWidgets);
 
       // Tap on Mi Perfil tab
       await tester.tap(find.text('Mi Perfil'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('Mi Perfil de Chambeador'), findsOneWidget);
     });
   });

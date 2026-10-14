@@ -18,6 +18,7 @@ class ChambaButton extends StatelessWidget {
   final bool isLoading;
   final double? width;
   final double height;
+  final Color? backgroundColor;
 
   const ChambaButton({
     super.key,
@@ -29,6 +30,7 @@ class ChambaButton extends StatelessWidget {
     this.isLoading = false,
     this.width,
     this.height = 52.0,
+    this.backgroundColor,
   });
 
   const ChambaButton.secondary({
@@ -40,6 +42,7 @@ class ChambaButton extends StatelessWidget {
     this.isLoading = false,
     this.width,
     this.height = 52.0,
+    this.backgroundColor,
   }) : variant = ChambaButtonVariant.secondary;
 
   const ChambaButton.pill({
@@ -51,6 +54,7 @@ class ChambaButton extends StatelessWidget {
     this.isLoading = false,
     this.width,
     this.height = 38.0,
+    this.backgroundColor,
   }) : variant = ChambaButtonVariant.tertiaryPill;
 
   @override
@@ -82,9 +86,10 @@ class ChambaButton extends StatelessWidget {
     final isPrimary = variant == ChambaButtonVariant.primary;
     final isGhost = variant == ChambaButtonVariant.ghost;
 
-    final bgColor = isPrimary
-        ? AppColors.secondary
-        : (isGhost ? Colors.transparent : AppColors.card);
+    final bgColor = backgroundColor ??
+        (isPrimary
+            ? AppColors.secondary
+            : (isGhost ? Colors.transparent : AppColors.card));
     final textColor = isPrimary ? AppColors.onSecondary : AppColors.primary;
     final borderColor = isPrimary
         ? Colors.transparent

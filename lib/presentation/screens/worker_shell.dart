@@ -36,8 +36,11 @@ class _WorkerShellState extends State<WorkerShell> {
     if (mounted) {
       if (widget.appState.isClient) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => ClientShell(appState: widget.appState),
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 350),
+            pageBuilder: (context, animation, secondaryAnimation) => ClientShell(appState: widget.appState),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+                FadeTransition(opacity: animation, child: child),
           ),
         );
       } else {
@@ -70,7 +73,7 @@ class _WorkerShellState extends State<WorkerShell> {
         decoration: const BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Color(0x0F173B4D),
+              color: Color(0x0F0F4C3A),
               blurRadius: 10,
               offset: Offset(0, -3),
             ),
@@ -85,9 +88,12 @@ class _WorkerShellState extends State<WorkerShell> {
           },
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
-          selectedItemColor: AppColors.secondary,
+          selectedItemColor: AppColors.workerAccent,
           unselectedItemColor: AppColors.muted,
-          selectedLabelStyle: AppTypography.labelSm.copyWith(fontWeight: FontWeight.w700),
+          selectedLabelStyle: AppTypography.labelSm.copyWith(
+            fontWeight: FontWeight.w700,
+            color: AppColors.workerAccent,
+          ),
           unselectedLabelStyle: AppTypography.labelSm,
           items: const [
             BottomNavigationBarItem(
@@ -116,3 +122,4 @@ class _WorkerShellState extends State<WorkerShell> {
     );
   }
 }
+

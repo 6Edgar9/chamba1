@@ -4,6 +4,7 @@ import '../../core/theme/app_typography.dart';
 import '../../core/widgets/chamba_button.dart';
 import '../../core/widgets/chamba_card.dart';
 import '../../core/widgets/chamba_badge.dart';
+import '../../core/widgets/role_switcher_pill.dart';
 import '../../data/models/job_request.dart';
 import '../state/app_state.dart';
 import 'send_bid_screen.dart';
@@ -33,6 +34,7 @@ class _AvailableJobsScreenState extends State<AvailableJobsScreen> {
 
   final List<String> _filters = [
     'Todos',
+    '🚨 Solo SOS',
     'Gasfitería',
     'Electricidad',
     'Cerrajería',
@@ -59,9 +61,17 @@ class _AvailableJobsScreenState extends State<AvailableJobsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final allJobs = _appState.availableWorkerJobs;
+    final allJobs = List<JobRequest>.from(_appState.availableWorkerJobs);
+    // Pin SOS jobs at the top, then sort by date
+    allJobs.sort((a, b) {
+      if (a.isSos && !b.isSos) return -1;
+      if (!a.isSos && b.isSos) return 1;
+      return b.createdAt.compareTo(a.createdAt);
+    });
+
     final filteredJobs = allJobs.where((j) {
       if (_selectedFilter == 'Todos') return true;
+      if (_selectedFilter == '🚨 Solo SOS') return j.isSos;
       if (_selectedFilter == '< 3 km') return j.distanceKm <= 3.0;
       return j.categoryName.toLowerCase().contains(_selectedFilter.toLowerCase());
     }).toList();
@@ -113,23 +123,9 @@ class _AvailableJobsScreenState extends State<AvailableJobsScreen> {
               );
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.work_history_outlined, color: AppColors.primary),
-            tooltip: 'Mis Trabajos',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => WorkerMyJobsScreen(appState: _appState),
-                ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.swap_horiz, color: AppColors.secondary),
-            tooltip: 'Cambiar a Modo Cliente',
-            onPressed: () {
-              _appState.switchRole(UserRole.client);
-            },
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: RoleSwitcherPill(appState: _appState, compact: true),
           ),
         ],
       ),
@@ -341,138 +337,205 @@ class _AvailableJobsScreenState extends State<AvailableJobsScreen> {
   }
 
   Widget _buildAvailableJobCard(JobRequest job) {
+    final isSos = job.isSos;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
-      child: ChambaCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceContainer,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        job.categoryName.toUpperCase(),
+      child: Container(
+        decoration: isSos
+            ? BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.sosRed, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.sosRed.withValues(alpha: 0.22),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              )
+            : null,
+        child: ChambaCard(
+          color: isSos ? const Color(0xFFFFF7F5) : null,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (isSos) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.sosRedLight,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.sosRed.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.emergency_rounded, size: 16, color: AppColors.sosRed),
+                      const SizedBox(width: 6),
+                      Text(
+                        'URGENTE • LLEGADA < 30 MIN',
                         style: AppTypography.labelSm.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 9,
+                          color: AppColors.sosRedDark,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 11,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'A ${job.distanceKm} km',
-                      style: AppTypography.labelSm.copyWith(
-                        color: AppColors.tertiary,
-                        fontWeight: FontWeight.w700,
+                      const Spacer(),
+                      Row(
+                        children: [
+                          const Icon(Icons.timer_outlined, size: 14, color: AppColors.sosAmber),
+                          const SizedBox(width: 4),
+                          Text(
+                            job.sosExpiresAt != null
+                                ? '${job.sosExpiresAt!.difference(DateTime.now()).inMinutes.clamp(1, 30)} min restantes'
+                                : '24 min restantes',
+                            style: AppTypography.labelSm.copyWith(
+                              color: AppColors.sosRedDark,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-                ChambaBadge(
-                  label: job.urgency,
-                  type: job.urgency.contains('Urgente')
-                      ? ChambaBadgeType.counterReceived
-                      : ChambaBadgeType.neutral,
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              job.title,
-              style: AppTypography.headlineSm.copyWith(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppColors.neutral,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              job.description,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.bodyMd.copyWith(
-                color: AppColors.muted,
-                height: 1.35,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const Icon(Icons.location_on_outlined, size: 14, color: AppColors.muted),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    '${job.district} (${job.address})',
-                    style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                    ],
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 14),
-            const Divider(height: 1, color: Color(0x14202D33)),
-            const SizedBox(height: 14),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Presupuesto del Cliente',
-                      style: AppTypography.labelSm.copyWith(color: AppColors.muted),
-                    ),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Text(
-                          'S/. ',
-                          style: AppTypography.labelLg.copyWith(
-                            color: AppColors.muted,
-                            fontWeight: FontWeight.w600,
-                          ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: isSos ? AppColors.sosRedLight : AppColors.surfaceContainer,
+                          borderRadius: BorderRadius.circular(6),
                         ),
-                        Text(
-                          job.budget.toStringAsFixed(0),
-                          style: AppTypography.numericBid.copyWith(
-                            color: AppColors.secondary,
-                            fontSize: 24,
+                        child: Text(
+                          job.categoryName.toUpperCase(),
+                          style: AppTypography.labelSm.copyWith(
+                            color: isSos ? AppColors.sosRed : AppColors.primary,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 9,
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                ChambaButton(
-                  width: 170,
-                  height: 46,
-                  label: 'Enviar Oferta',
-                  leadingIcon: Icons.send,
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => SendBidScreen(
-                          appState: _appState,
-                          job: job,
                         ),
                       ),
-                    );
-                  },
+                      const SizedBox(width: 8),
+                      Text(
+                        'A ${job.distanceKm} km',
+                        style: AppTypography.labelSm.copyWith(
+                          color: isSos ? AppColors.sosRed : AppColors.tertiary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  isSos
+                      ? const ChambaBadge.sos(label: '🚨 Tarifa 1.35x')
+                      : ChambaBadge(
+                          label: job.urgency,
+                          type: job.urgency.contains('Urgente')
+                              ? ChambaBadgeType.counterReceived
+                              : ChambaBadgeType.neutral,
+                        ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                job.title,
+                style: AppTypography.headlineSm.copyWith(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: isSos ? AppColors.sosRedDark : AppColors.neutral,
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                job.description,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.bodyMd.copyWith(
+                  color: AppColors.muted,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Icon(Icons.location_on_outlined, size: 14, color: AppColors.muted),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      '${job.district} (${job.address})',
+                      style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              const Divider(height: 1, color: Color(0x14202D33)),
+              const SizedBox(height: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isSos ? 'Tarifa Dinámica SOS' : 'Presupuesto del Cliente',
+                        style: AppTypography.labelSm.copyWith(
+                          color: isSos ? AppColors.sosRed : AppColors.muted,
+                          fontWeight: isSos ? FontWeight.w700 : FontWeight.w500,
+                        ),
+                      ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            'S/. ',
+                            style: AppTypography.labelLg.copyWith(
+                              color: isSos ? AppColors.sosRed : AppColors.muted,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            job.budget.toStringAsFixed(0),
+                            style: AppTypography.numericBid.copyWith(
+                              color: isSos ? AppColors.sosRed : AppColors.secondary,
+                              fontSize: 24,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  ChambaButton(
+                    width: 170,
+                    height: 46,
+                    label: isSos ? 'Atender SOS Ya' : 'Enviar Oferta',
+                    leadingIcon: isSos ? Icons.flash_on : Icons.send,
+                    backgroundColor: isSos ? AppColors.sosRed : null,
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => SendBidScreen(
+                            appState: _appState,
+                            job: job,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
+

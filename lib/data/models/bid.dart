@@ -21,6 +21,14 @@ class Bid {
   final String message;
   final DateTime createdAt;
 
+  // New Phase 2 fields: Voice note & Quick Inclusion tags
+  final bool hasVoiceNote;
+  final int voiceDurationSeconds;
+  final String? voiceTranscriptPreview;
+  final bool includesMaterials;
+  final String estimatedArrival;
+  final List<String> inclusionTags;
+
   const Bid({
     required this.id,
     required this.jobId,
@@ -36,6 +44,12 @@ class Bid {
     required this.etaMinutes,
     required this.message,
     required this.createdAt,
+    this.hasVoiceNote = false,
+    this.voiceDurationSeconds = 0,
+    this.voiceTranscriptPreview,
+    this.includesMaterials = false,
+    this.estimatedArrival = '25 min',
+    this.inclusionTags = const [],
   });
 
   Bid copyWith({
@@ -44,6 +58,12 @@ class Bid {
     BidStatus? status,
     int? etaMinutes,
     String? message,
+    bool? hasVoiceNote,
+    int? voiceDurationSeconds,
+    String? voiceTranscriptPreview,
+    bool? includesMaterials,
+    String? estimatedArrival,
+    List<String>? inclusionTags,
   }) {
     return Bid(
       id: id,
@@ -60,6 +80,12 @@ class Bid {
       etaMinutes: etaMinutes ?? this.etaMinutes,
       message: message ?? this.message,
       createdAt: createdAt,
+      hasVoiceNote: hasVoiceNote ?? this.hasVoiceNote,
+      voiceDurationSeconds: voiceDurationSeconds ?? this.voiceDurationSeconds,
+      voiceTranscriptPreview: voiceTranscriptPreview ?? this.voiceTranscriptPreview,
+      includesMaterials: includesMaterials ?? this.includesMaterials,
+      estimatedArrival: estimatedArrival ?? this.estimatedArrival,
+      inclusionTags: inclusionTags ?? this.inclusionTags,
     );
   }
 }

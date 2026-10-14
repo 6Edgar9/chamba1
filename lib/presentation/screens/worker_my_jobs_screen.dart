@@ -8,6 +8,7 @@ import '../../data/models/job_request.dart';
 import '../state/app_state.dart';
 import 'chat_screen.dart';
 import 'job_tracking_screen.dart';
+import '../widgets/worker_earnings_dashboard.dart';
 
 class WorkerMyJobsScreen extends StatefulWidget {
   final AppState appState;
@@ -62,145 +63,76 @@ class _WorkerMyJobsScreenState extends State<WorkerMyJobsScreen>
       return j.status == JobStatus.completed;
     }).toList();
 
+    final canPop = Navigator.of(context).canPop();
+
     return Scaffold(
       backgroundColor: AppColors.canvas,
       appBar: AppBar(
         title: const Text('Mis Trabajos'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        leading: canPop
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.of(context).pop(),
+              )
+            : null,
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Top Earnings Summary Card
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-              child: ChambaCard(
-                color: AppColors.primary,
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Ingresos del Mes',
-                          style: AppTypography.labelMd.copyWith(color: Colors.white70),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            'Chiclayo • 2026',
-                            style: AppTypography.labelSm.copyWith(color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Text(
-                          'S/. ',
-                          style: AppTypography.headlineLg.copyWith(color: Colors.white70),
-                        ),
-                        Text(
-                          '1,840',
-                          style: AppTypography.numericBidLarge.copyWith(
-                            color: Colors.white,
-                            fontSize: 34,
-                          ),
-                        ),
-                        Text(
-                          '.00',
-                          style: AppTypography.headlineSm.copyWith(color: Colors.white70),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    const Divider(height: 1, color: Colors.white24),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildMetric('Completadas', '24'),
-                        _buildMetric('Calificación', '4.9 ⭐'),
-                        _buildMetric('Tasa éxito', '98%'),
-                      ],
-                    ),
-                  ],
+        child: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: WorkerEarningsDashboard(
+                    appState: widget.appState,
+                    compact: false,
+                  ),
                 ),
               ),
-            ),
-
-            const SizedBox(height: 10),
-
-            // Tab bar
-            TabBar(
-              controller: _tabController,
-              labelColor: AppColors.secondary,
-              unselectedLabelColor: AppColors.muted,
-              indicatorColor: AppColors.secondary,
-              indicatorWeight: 3,
-              labelStyle: AppTypography.bodyMdMedium.copyWith(fontWeight: FontWeight.w700),
-              tabs: [
-                Tab(text: 'Activas (${activeJobs.length})'),
-                Tab(text: 'Negociando (${negotiatingJobs.length})'),
-                Tab(text: 'Historial (${completedJobs.length})'),
-              ],
-            ),
-
-            // Tab views
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildJobList(activeJobs, 'No tienes servicios activos en este momento.'),
-                  _buildJobList(negotiatingJobs, 'No tienes cotizaciones en negociación actualmente.'),
-                  _buildJobList(completedJobs, 'Aún no registras chambas completadas.'),
-                ],
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _SliverTabBarDelegate(
+                  TabBar(
+                    controller: _tabController,
+                    labelColor: AppColors.secondary,
+                    unselectedLabelColor: AppColors.muted,
+                    indicatorColor: AppColors.secondary,
+                    indicatorWeight: 3,
+                    labelStyle: AppTypography.bodyMdMedium.copyWith(fontWeight: FontWeight.w700),
+                    tabs: [
+                      Tab(text: 'Activas (${activeJobs.length})'),
+                      Tab(text: 'Negociando (${negotiatingJobs.length})'),
+                      Tab(text: 'Historial (${completedJobs.length})'),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMetric(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: AppTypography.bodyLgMedium.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w800,
+            ];
+          },
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildJobList(activeJobs, 'No tienes servicios activos en este momento.'),
+              _buildJobList(negotiatingJobs, 'No tienes cotizaciones en negociación actualmente.'),
+              _buildJobList(completedJobs, 'Aún no registras chambas completadas.'),
+            ],
           ),
         ),
-        Text(
-          label,
-          style: AppTypography.labelSm.copyWith(color: Colors.white70),
-        ),
-      ],
+      ),
     );
   }
 
   Widget _buildJobList(List<JobRequest> jobs, String emptyMessage) {
     if (jobs.isEmpty) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.inbox_outlined, size: 48, color: AppColors.muted),
-              const SizedBox(height: 12),
+              const Icon(Icons.inbox_outlined, size: 44, color: AppColors.muted),
+              const SizedBox(height: 10),
               Text(
                 emptyMessage,
                 textAlign: TextAlign.center,
@@ -320,5 +252,30 @@ class _WorkerMyJobsScreenState extends State<WorkerMyJobsScreen>
         );
       },
     );
+  }
+}
+
+class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar tabBar;
+
+  _SliverTabBarDelegate(this.tabBar);
+
+  @override
+  double get minExtent => tabBar.preferredSize.height;
+
+  @override
+  double get maxExtent => tabBar.preferredSize.height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: AppColors.canvas,
+      child: tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_SliverTabBarDelegate oldDelegate) {
+    return oldDelegate.tabBar != tabBar;
   }
 }

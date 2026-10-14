@@ -28,7 +28,12 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
   late JobRequest _job;
   int _selectedRating = 5;
   final _reviewController = TextEditingController();
-  String _selectedPaymentMethod = 'Yape';
+  String _selectedEscrowPaymentMethod = 'Yape';
+
+  // State to simulate Technician entering the PIN on the door
+  bool _isWorkerSimulatedMode = false;
+  String _pinInput = '';
+  String? _pinError;
 
   final List<String> _feedbackTags = [
     'Puntualidad 10/10',
@@ -43,6 +48,7 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
   void initState() {
     super.initState();
     _job = widget.job;
+    _isWorkerSimulatedMode = widget.appState.currentRole == UserRole.worker;
     widget.appState.addListener(_onStateUpdate);
   }
 
@@ -63,7 +69,300 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
     super.dispose();
   }
 
-  void _showPaymentModal() {
+  void _onKeypadTap(String digit) {
+    if (_pinInput.length < 4) {
+      setState(() {
+        _pinInput += digit;
+        _pinError = null;
+      });
+
+      if (_pinInput.length == 4) {
+        _submitPinVerification(_pinInput);
+      }
+    }
+  }
+
+  void _onKeypadBackspace() {
+    if (_pinInput.isNotEmpty) {
+      setState(() {
+        _pinInput = _pinInput.substring(0, _pinInput.length - 1);
+        _pinError = null;
+      });
+    }
+  }
+
+  void _submitPinVerification(String pin) {
+    final success = widget.appState.verifySecurityPin(_job.id, pin);
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('🛡️ ¡PIN Validado con éxito! Técnico identificado en puerta.'),
+          backgroundColor: AppColors.tertiary,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      setState(() {
+        _pinError = null;
+        _pinInput = '';
+      });
+    } else {
+      setState(() {
+        _pinError = 'PIN incorrecto. Pídele al cliente el código de su pantalla.';
+        _pinInput = '';
+      });
+    }
+  }
+
+  void _showShareTrackingSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0x33202D33),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.tertiary.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.share_location_rounded, color: AppColors.tertiary, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Compartir Enlace de Seguridad',
+                            style: AppTypography.headlineSm.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          Text(
+                            'Tus familiares sabrán quién y cuándo llega a tu hogar',
+                            style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0x1F173B4D)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Enlace protegido en vivo:',
+                        style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'https://chamba.pe/track/${_job.securityPin}',
+                        style: AppTypography.bodyLgMedium.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Incluye: Nombre del técnico, DNI verificado en RENIEC, placa de moto y PIN presencial (${_job.securityPin}).',
+                        style: AppTypography.labelSm.copyWith(color: AppColors.neutral, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                ChambaButton(
+                  label: 'Compartir por WhatsApp',
+                  leadingIcon: Icons.send_rounded,
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('¡Enlace de seguridad copiado y compartido por WhatsApp!'),
+                        backgroundColor: AppColors.tertiary,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showCameraSimulationSheet({required bool isBefore}) {
+    final title = isBefore ? 'Foto del Problema Inicial (Antes)' : 'Foto del Trabajo Resuelto (Después)';
+    final subtitle = isBefore
+        ? 'El técnico registra la falla antes de intervenir para proteger la garantía.'
+        : 'Sube la foto del acabado final para que el cliente verifique y libere los fondos.';
+
+    final options = isBefore
+        ? [
+            'Fuga activa con tubería partida en pared',
+            'Cables sulfatados y chispeando en tablero',
+            'Inodoro desbordado con empaque roto',
+            'Cerradura trabada sin pestillo',
+          ]
+        : [
+            'Termofusión certificada con prueba de presión',
+            'Llaves Schneider nuevas con rotulado peineta',
+            'Sanitario sellado y funcionando al 100%',
+            'Chapa Phillips nueva instalada y lubricada',
+          ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0x33202D33),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isBefore ? AppColors.secondary.withValues(alpha: 0.15) : AppColors.tertiary.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        isBefore ? Icons.camera_alt_rounded : Icons.check_circle_rounded,
+                        color: isBefore ? AppColors.secondary : AppColors.tertiary,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: AppTypography.headlineSm.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          Text(
+                            subtitle,
+                            style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  'Selecciona una captura de evidencia simulada:',
+                  style: AppTypography.labelLg.copyWith(color: AppColors.neutral),
+                ),
+                const SizedBox(height: 10),
+                ...options.map((opt) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () {
+                        Navigator.of(ctx).pop();
+                        if (isBefore) {
+                          widget.appState.uploadBeforeEvidence(jobId: _job.id, tag: opt);
+                        } else {
+                          widget.appState.uploadAfterEvidence(jobId: _job.id, tag: opt);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0x1F173B4D)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.photo_camera_back_outlined, size: 20, color: AppColors.primary),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                opt,
+                                style: AppTypography.bodyLgMedium.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.neutral,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.muted),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showDepositEscrowSheet() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -93,19 +392,38 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
                       ),
                     ),
                     const SizedBox(height: 18),
-                    Text(
-                      'Registrar Pago del Servicio',
-                      style: AppTypography.headlineSm.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.primary,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppColors.tertiary.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.shield_rounded, color: AppColors.tertiary, size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Pago Protegido en Custodia',
+                                style: AppTypography.headlineSm.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              Text(
+                                'Tu dinero se retiene de forma 100% segura hasta que el trabajo esté terminado.',
+                                style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Paga directamente al especialista acordado en Chiclayo:',
-                      style: AppTypography.bodyMd.copyWith(color: AppColors.muted),
-                    ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -117,7 +435,7 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Monto a pagar:',
+                            'Monto en Custodia:',
                             style: AppTypography.bodyLgMedium.copyWith(color: AppColors.neutral),
                           ),
                           Text(
@@ -132,24 +450,23 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Selecciona método de pago:',
+                      'Elige método de depósito:',
                       style: AppTypography.labelLg.copyWith(color: AppColors.neutral),
                     ),
                     const SizedBox(height: 10),
                     _buildPaymentOption('Yape', 'Billetera digital BCP (+51 974 812 345)', Icons.qr_code_2, setModalState),
                     _buildPaymentOption('Plin', 'Interbank, Scotiabank, BBVA', Icons.phone_android, setModalState),
-                    _buildPaymentOption('Efectivo', 'Pago directo en mano al finalizar', Icons.payments_outlined, setModalState),
+                    _buildPaymentOption('Tarjeta Visa/Mastercard', 'Débito o Crédito sin recargo', Icons.credit_card_rounded, setModalState),
                     const SizedBox(height: 20),
                     ChambaButton(
-                      label: 'Confirmar Pago por $_selectedPaymentMethod',
-                      leadingIcon: Icons.check_circle_outline,
+                      label: 'Depositar S/. ${_job.budget.toStringAsFixed(0)} en Custodia',
+                      leadingIcon: Icons.lock_outline_rounded,
                       onPressed: () {
-                        widget.appState.registerPayment(
+                        widget.appState.depositEscrow(
                           jobId: _job.id,
-                          paymentMethod: _selectedPaymentMethod,
+                          paymentMethod: _selectedEscrowPaymentMethod,
                         );
                         Navigator.of(context).pop();
-                        _showRatingModal();
                       },
                     ),
                   ],
@@ -163,11 +480,11 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
   }
 
   Widget _buildPaymentOption(String title, String subtitle, IconData icon, StateSetter setModalState) {
-    final isSelected = _selectedPaymentMethod == title;
+    final isSelected = _selectedEscrowPaymentMethod == title;
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: () {
-        setModalState(() => _selectedPaymentMethod = title);
+        setModalState(() => _selectedEscrowPaymentMethod = title);
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
@@ -204,6 +521,76 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
             ),
             if (isSelected)
               const Icon(Icons.check_circle, color: AppColors.primary, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showReleaseSuccessCelebrationDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        contentPadding: const EdgeInsets.all(24),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: AppColors.tertiary.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.verified_user_rounded, color: AppColors.tertiary, size: 54),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '¡Chamba Exitosa y Garantizada!',
+              style: AppTypography.headlineSm.copyWith(
+                fontWeight: FontWeight.w900,
+                color: AppColors.primary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Se han transferido S/. ${_job.budget.toStringAsFixed(0)} de la cuenta de garantía a ${_job.workerName ?? "el especialista"}.',
+              style: AppTypography.bodyMd.copyWith(color: AppColors.neutral),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.shieldWarranty.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.shieldWarranty.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.verified, size: 16, color: AppColors.shieldWarranty),
+                  const SizedBox(width: 6),
+                  Text(
+                    '🛡️ Garantía Chamba de 7 días activa',
+                    style: AppTypography.labelSm.copyWith(
+                      color: AppColors.shieldWarranty,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            ChambaButton(
+              label: 'Calificar al Especialista ⭐',
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                _showRatingModal();
+              },
+            ),
           ],
         ),
       ),
@@ -354,7 +741,7 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
           style: AppTypography.headlineSm.copyWith(color: AppColors.primary),
         ),
         content: Text(
-          'Al cancelar la solicitud, se cerrará la negociación con los técnicos postulados.',
+          'Al cancelar la solicitud, los fondos en garantía serán devueltos a tu cuenta de inmediato.',
           style: AppTypography.bodyMd.copyWith(color: AppColors.muted),
         ),
         actions: [
@@ -380,13 +767,18 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
   Widget build(BuildContext context) {
     final workerName = _job.workerName ?? 'Jorge Quispe Baldera';
     final clientCoords = LatLng(_job.latitude, _job.longitude);
-    // Worker moving marker slightly offset for live navigation realism
     final workerCoords = LatLng(_job.latitude + 0.006, _job.longitude + 0.008);
 
     return Scaffold(
       backgroundColor: AppColors.canvas,
       appBar: AppBar(
-        title: const Text('Mi Servicio y Seguimiento'),
+        title: Text(
+          _job.isSos ? '🚨 Chamba SOS en Curso' : 'Servicio Protegido y Seguimiento',
+          style: AppTypography.headlineSm.copyWith(
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+          ),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
@@ -423,23 +815,38 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Hero status card
+              // Hero Status Card
               ChambaCard(
-                color: AppColors.primary,
+                color: _job.isSos ? AppColors.sosRed : AppColors.primary,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        ChambaBadge.confirmed(
-                          label: _job.status.displayLabel,
-                        ),
-                        Text(
-                          'PIN: ${_job.confirmationCode}',
-                          style: AppTypography.labelSm.copyWith(
-                            color: Colors.white70,
-                            fontWeight: FontWeight.w700,
+                        if (_job.isSos)
+                          const ChambaBadge.sos(label: 'EMERGENCIA SOS < 30 MIN')
+                        else
+                          ChambaBadge.confirmed(label: _job.status.displayLabel),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.lock, size: 13, color: Colors.white),
+                              const SizedBox(width: 4),
+                              Text(
+                                'PIN: ${_job.securityPin}',
+                                style: AppTypography.labelSm.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.5,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -474,15 +881,28 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Monto Acordado:',
-                          style: AppTypography.bodyMd.copyWith(color: Colors.white70),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Monto en Garantía:',
+                              style: AppTypography.bodyMd.copyWith(color: Colors.white70),
+                            ),
+                            if (_job.isSos)
+                              Text(
+                                'Tarifa SOS Dinámica (+35%)',
+                                style: AppTypography.labelSm.copyWith(
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                  fontSize: 11,
+                                ),
+                              ),
+                          ],
                         ),
                         Text(
                           'S/. ${_job.budget.toStringAsFixed(0)}',
                           style: AppTypography.numericBid.copyWith(
                             color: Colors.white,
-                            fontSize: 24,
+                            fontSize: 26,
                           ),
                         ),
                       ],
@@ -492,22 +912,43 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Interactive Live Tracking Map
-              Text(
-                'Ruta en Vivo y Posición del Especialista',
-                style: AppTypography.labelLg.copyWith(color: AppColors.neutral),
+              // Interactive Live Tracking Map with SOS Radar support
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Ruta en Vivo y Posición del Especialista',
+                    style: AppTypography.labelLg.copyWith(color: AppColors.neutral),
+                  ),
+                  if (_job.isSos)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.sosRed.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Llegada < 18 min',
+                        style: AppTypography.labelSm.copyWith(
+                          color: AppColors.sosRed,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 8),
               ChambaInteractiveMap(
                 mode: MapDisplayMode.tracking,
                 height: 220,
+                isSos: _job.isSos,
                 initialCenter: clientCoords,
                 workerPosition: workerCoords,
                 clientAddress: _job.address,
               ),
               const SizedBox(height: 16),
 
-              // Assigned Worker Card
+              // Assigned Worker Card with Trust Shield
               ChambaCard(
                 child: Column(
                   children: [
@@ -540,10 +981,10 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
                               const SizedBox(height: 2),
                               Row(
                                 children: [
-                                  const Icon(Icons.verified, size: 14, color: AppColors.tertiary),
+                                  const Icon(Icons.star, size: 14, color: Colors.amber),
                                   const SizedBox(width: 4),
                                   Text(
-                                    'DNI Verificado • 4.9 ⭐ (142)',
+                                    '4.9 ⭐ (142 chambas)',
                                     style: AppTypography.labelSm.copyWith(color: AppColors.muted),
                                   ),
                                 ],
@@ -553,7 +994,14 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
+                    // Escudo de Confianza Badges
+                    const TrustShieldBadgesRow(
+                      isIdVerified: true,
+                      hasCleanRecord: true,
+                      offersWarranty: true,
+                    ),
+                    const SizedBox(height: 14),
                     Row(
                       children: [
                         Expanded(
@@ -590,50 +1038,708 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Security PIN Card
+              // Perspective Switcher (Simulate Client vs. Worker PIN validation)
               Container(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0x1F173B4D), width: 1.5),
+                  color: AppColors.surfaceContainer,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.pin, color: Colors.white, size: 24),
+                    Row(
+                      children: [
+                        Icon(
+                          _isWorkerSimulatedMode ? Icons.handyman_rounded : Icons.person_rounded,
+                          size: 18,
+                          color: _isWorkerSimulatedMode ? AppColors.workerAccent : AppColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _isWorkerSimulatedMode ? 'Vista Técnico: Validación PIN' : 'Vista Cliente: Tu Código PIN',
+                          style: AppTypography.labelSm.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.neutral,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
+                    TextButton(
+                      style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                      onPressed: () {
+                        setState(() {
+                          _isWorkerSimulatedMode = !_isWorkerSimulatedMode;
+                          _pinInput = '';
+                          _pinError = null;
+                        });
+                      },
+                      child: Text(
+                        _isWorkerSimulatedMode ? 'Ver como Cliente' : 'Simular Técnico',
+                        style: AppTypography.labelSm.copyWith(
+                          color: AppColors.secondary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // ==========================================
+              // REQUIREMENT 3: PIN DE SEGURIDAD Y ESCUDO DE CONFIANZA
+              // ==========================================
+              if (!_isWorkerSimulatedMode) ...[
+                // CLIENT VIEW OF SECURITY PIN
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        _job.isPinVerified ? const Color(0xFF0F4C3A) : const Color(0xFF173B4D),
+                        _job.isPinVerified ? const Color(0xFF1B6B54) : const Color(0xFF23556D),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x24173B4D),
+                        blurRadius: 12,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              _job.isPinVerified ? Icons.verified_user_rounded : Icons.shield_rounded,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Escudo de Confianza Chamba',
+                                  style: AppTypography.labelSm.copyWith(
+                                    color: Colors.white70,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                Text(
+                                  _job.isPinVerified ? '¡Identidad Validada en Puerta!' : 'Tu PIN de Seguridad Presencial',
+                                  style: AppTypography.headlineSm.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 17,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: _job.securityPin.split('').map((digit) {
+                            return Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 6),
+                              width: 48,
+                              height: 52,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Color(0x20000000),
+                                    blurRadius: 4,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                digit,
+                                style: AppTypography.headlineLg.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 28,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        _job.isPinVerified
+                            ? '✅ El especialista ingresó el código correcto. La intervención está autorizada y asegurada.'
+                            : 'Pídele este código al técnico en tu puerta antes de dejarlo pasar. No permitas el ingreso sin verificarlo.',
+                        style: AppTypography.bodyMd.copyWith(
+                          color: Colors.white.withValues(alpha: 0.85),
+                          fontSize: 12.5,
+                          height: 1.35,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                side: const BorderSide(color: Colors.white60),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                              ),
+                              onPressed: _showShareTrackingSheet,
+                              icon: const Icon(Icons.share_location_rounded, size: 18),
+                              label: const Text('Compartir seguimiento en vivo'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                // WORKER / TECHNICIAN VIEW - INTERACTIVE PIN VALIDATION INPUT
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: _job.isPinVerified ? AppColors.tertiary : AppColors.workerAccent,
+                      width: 2,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x1A000000),
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: AppColors.workerAccent.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.dialpad_rounded, color: AppColors.workerAccent, size: 24),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Validación de Entrada en Puerta',
+                                  style: AppTypography.labelSm.copyWith(
+                                    color: AppColors.workerAccent,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                Text(
+                                  'Ingresa el PIN de 4 dígitos',
+                                  style: AppTypography.headlineSm.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 17,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Solicita el código que el cliente tiene en su app para desbloquear el inicio del trabajo.',
+                        style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                      ),
+                      const SizedBox(height: 16),
+                      // PIN Boxes Display
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(4, (index) {
+                          final hasDigit = index < _pinInput.length;
+                          final digitChar = hasDigit ? _pinInput[index] : '';
+                          return Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 6),
+                            width: 50,
+                            height: 54,
+                            decoration: BoxDecoration(
+                              color: _job.isPinVerified
+                                  ? AppColors.tertiary.withValues(alpha: 0.12)
+                                  : AppColors.surfaceContainerLow,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _pinError != null
+                                    ? Colors.red
+                                    : hasDigit
+                                        ? AppColors.workerAccent
+                                        : const Color(0x1F173B4D),
+                                width: hasDigit ? 2 : 1,
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              _job.isPinVerified ? _job.securityPin[index] : digitChar,
+                              style: AppTypography.headlineLg.copyWith(
+                                color: _job.isPinVerified ? AppColors.tertiary : AppColors.primary,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 26,
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                      if (_pinError != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _pinError!,
+                          style: AppTypography.labelSm.copyWith(color: Colors.red, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                      if (_job.isPinVerified) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.tertiary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.check_circle, color: AppColors.tertiary, size: 16),
+                              const SizedBox(width: 6),
+                              Text(
+                                '¡PIN Correcto! Trabajo desbloqueado.',
+                                style: AppTypography.labelSm.copyWith(
+                                  color: AppColors.tertiary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else ...[
+                        const SizedBox(height: 16),
+                        // Interactive Numeric Keypad
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceContainerLow,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Column(
+                            children: [
+                              for (var row in [
+                                ['1', '2', '3'],
+                                ['4', '5', '6'],
+                                ['7', '8', '9'],
+                                ['', '0', '⌫'],
+                              ])
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                    children: row.map((key) {
+                                      if (key.isEmpty) {
+                                        return const SizedBox(width: 64, height: 44);
+                                      }
+                                      return SizedBox(
+                                        width: 64,
+                                        height: 44,
+                                        child: ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.white,
+                                            foregroundColor: AppColors.primary,
+                                            elevation: 1,
+                                            padding: EdgeInsets.zero,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                          ),
+                                          onPressed: () {
+                                            if (key == '⌫') {
+                                              _onKeypadBackspace();
+                                            } else {
+                                              _onKeypadTap(key);
+                                            }
+                                          },
+                                          child: Text(
+                                            key,
+                                            style: AppTypography.bodyLgMedium.copyWith(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 20,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 20),
+
+              // ==========================================
+              // REQUIREMENT 4: PAGO PROTEGIDO (ESCROW) Y STEPPER INTERACTIVO DE 4 FASES
+              // ==========================================
+              ChambaCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Pago Protegido y Evidencia (Escrow)',
+                          style: AppTypography.headlineSm.copyWith(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.tertiary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.security, size: 13, color: AppColors.tertiary),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Garantía Chamba',
+                                style: AppTypography.labelSm.copyWith(
+                                  color: AppColors.tertiary,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Flujo de custodia en 4 fases para garantizar que el dinero solo se pague con trabajo de calidad verificado.',
+                      style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // PHASE 1: PAGO EN GARANTÍA (ESCROW)
+                    _buildEscrowPhaseCard(
+                      phaseNumber: 1,
+                      title: 'Fase 1: Pago en Garantía (Escrow)',
+                      isCompleted: _job.escrowStatus != EscrowStatus.pendingDeposit,
+                      isCurrent: _job.escrowStatus == EscrowStatus.pendingDeposit,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Código de Verificación Seguro',
-                            style: AppTypography.labelSm.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w700,
+                          if (_job.escrowStatus == EscrowStatus.pendingDeposit) ...[
+                            Text(
+                              'Los fondos aún no han sido depositados en custodia.',
+                              style: AppTypography.labelSm.copyWith(color: AppColors.muted),
                             ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            _job.confirmationCode,
-                            style: AppTypography.headlineLg.copyWith(
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 4,
-                              color: AppColors.secondary,
+                            const SizedBox(height: 8),
+                            ChambaButton(
+                              label: 'Depositar S/. ${_job.budget.toStringAsFixed(0)} en Custodia',
+                              leadingIcon: Icons.lock_outline_rounded,
+                              height: 42,
+                              onPressed: _showDepositEscrowSheet,
                             ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Entrégalo al especialista cuando llegue a tu casa para confirmar el inicio.',
-                            style: AppTypography.labelSm.copyWith(color: AppColors.muted),
-                          ),
+                          ] else ...[
+                            Row(
+                              children: [
+                                const Icon(Icons.check_circle_rounded, color: AppColors.tertiary, size: 18),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'S/. ${_job.budget.toStringAsFixed(0)} en custodia retenida por Chamba',
+                                    style: AppTypography.bodyLgMedium.copyWith(
+                                      color: AppColors.tertiary,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Retenido de forma segura. El técnico solo recibirá el dinero tras tu aprobación de la obra.',
+                              style: AppTypography.labelSm.copyWith(color: AppColors.muted, fontSize: 11.5),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // PHASE 2: LLEGADA Y PIN DE SEGURIDAD
+                    _buildEscrowPhaseCard(
+                      phaseNumber: 2,
+                      title: 'Fase 2: Llegada y PIN de Seguridad',
+                      isCompleted: _job.isPinVerified,
+                      isCurrent: _job.escrowStatus != EscrowStatus.pendingDeposit && !_job.isPinVerified,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (_job.isPinVerified) ...[
+                            Row(
+                              children: [
+                                const Icon(Icons.verified_user_rounded, color: AppColors.tertiary, size: 18),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Técnico validado en puerta con código ${_job.securityPin}',
+                                    style: AppTypography.bodyLgMedium.copyWith(
+                                      color: AppColors.tertiary,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Identidad física confirmada. Trabajo oficialmente iniciado.',
+                              style: AppTypography.labelSm.copyWith(color: AppColors.muted, fontSize: 11.5),
+                            ),
+                          ] else ...[
+                            Text(
+                              'Pendiente de validación presencial en el domicilio.',
+                              style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                            ),
+                            const SizedBox(height: 8),
+                            ChambaButton.secondary(
+                              label: 'Validar PIN en Puerta',
+                              height: 40,
+                              leadingIcon: Icons.pin,
+                              onPressed: () {
+                                setState(() => _isWorkerSimulatedMode = true);
+                              },
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // PHASE 3: EVIDENCIA DEL "ANTES" Y EJECUCIÓN
+                    _buildEscrowPhaseCard(
+                      phaseNumber: 3,
+                      title: 'Fase 3: Evidencia del "Antes" y Ejecución',
+                      isCompleted: _job.beforePhotoTag != null,
+                      isCurrent: _job.isPinVerified && _job.beforePhotoTag == null,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (_job.beforePhotoTag != null) ...[
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceContainerLow,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: const Color(0x1F173B4D)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.camera_alt_rounded, color: AppColors.primary, size: 18),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Foto del Problema Inicial (Antes):',
+                                          style: AppTypography.labelSm.copyWith(color: AppColors.muted, fontSize: 11),
+                                        ),
+                                        Text(
+                                          _job.beforePhotoTag!,
+                                          style: AppTypography.bodyLgMedium.copyWith(
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 12.5,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(Icons.check, color: AppColors.tertiary, size: 16),
+                                ],
+                              ),
+                            ),
+                          ] else if (!_job.isPinVerified) ...[
+                            Text(
+                              'Se desbloqueará una vez validado el PIN presencial.',
+                              style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                            ),
+                          ] else ...[
+                            Text(
+                              'Registra el estado del desperfecto antes de intervenir para activar la garantía.',
+                              style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                            ),
+                            const SizedBox(height: 8),
+                            ChambaButton(
+                              label: '📸 Capturar Foto del "Antes"',
+                              height: 40,
+                              onPressed: () => _showCameraSimulationSheet(isBefore: true),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // PHASE 4: EVIDENCIA DEL "DESPUÉS" Y LIBERACIÓN DE FONDOS
+                    _buildEscrowPhaseCard(
+                      phaseNumber: 4,
+                      title: 'Fase 4: Evidencia del "Después" y Liberación',
+                      isCompleted: _job.escrowStatus == EscrowStatus.released,
+                      isCurrent: _job.beforePhotoTag != null && _job.escrowStatus != EscrowStatus.released,
+                      isLast: true,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (_job.escrowStatus == EscrowStatus.released) ...[
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppColors.tertiary.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: AppColors.tertiary.withValues(alpha: 0.3)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.verified, color: AppColors.tertiary, size: 20),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '¡Fondos Liberados Exitosamente!',
+                                          style: AppTypography.labelLg.copyWith(
+                                            color: AppColors.tertiary,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                        Text(
+                                          'S/. ${_job.budget.toStringAsFixed(0)} transferidos • Garantía activa de 7 días',
+                                          style: AppTypography.labelSm.copyWith(color: AppColors.muted, fontSize: 11),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ] else if (_job.afterPhotoTag == null) ...[
+                            if (_job.beforePhotoTag == null)
+                              Text(
+                                'Se desbloqueará al subir la foto inicial del problema.',
+                                style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                              )
+                            else ...[
+                              Text(
+                                'El técnico debe capturar la reparación finalizada.',
+                                style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                              ),
+                              const SizedBox(height: 8),
+                              ChambaButton(
+                                label: '✨ Subir Foto del "Después" (Solucionado)',
+                                height: 40,
+                                onPressed: () => _showCameraSimulationSheet(isBefore: false),
+                              ),
+                            ],
+                          ] else ...[
+                            // After photo is uploaded, client can approve and release funds!
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceContainerLow,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: const Color(0x1F173B4D)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.task_alt_rounded, color: AppColors.tertiary, size: 18),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Foto del Trabajo Resuelto (Después):',
+                                          style: AppTypography.labelSm.copyWith(color: AppColors.muted, fontSize: 11),
+                                        ),
+                                        Text(
+                                          _job.afterPhotoTag!,
+                                          style: AppTypography.bodyLgMedium.copyWith(
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 12.5,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(Icons.check, color: AppColors.tertiary, size: 16),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            ChambaButton(
+                              label: 'Confirmar Conformidad y Liberar Pago (S/. ${_job.budget.toStringAsFixed(0)})',
+                              leadingIcon: Icons.payments_rounded,
+                              onPressed: () {
+                                widget.appState.releaseEscrow(_job.id);
+                                _showReleaseSuccessCelebrationDialog();
+                              },
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -642,82 +1748,9 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Status Progression Stepper
-              ChambaCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Progreso del Servicio',
-                      style: AppTypography.headlineSm.copyWith(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildStep(
-                      stepNumber: 1,
-                      title: 'Acuerdo Cerrado',
-                      subtitle: 'Precio acordado en S/. ${_job.budget.toStringAsFixed(0)}',
-                      isDone: true,
-                      isCurrent: false,
-                    ),
-                    _buildStep(
-                      stepNumber: 2,
-                      title: 'Especialista en Camino',
-                      subtitle: 'Desplazándose en moto a ${_job.district}',
-                      isDone: _job.status == JobStatus.inProgress || _job.status == JobStatus.completed,
-                      isCurrent: _job.status == JobStatus.onTheWay,
-                    ),
-                    _buildStep(
-                      stepNumber: 3,
-                      title: 'En el Domicilio / Reparación',
-                      subtitle: 'Trabajo técnico en ejecución',
-                      isDone: _job.status == JobStatus.completed,
-                      isCurrent: _job.status == JobStatus.inProgress,
-                    ),
-                    _buildStep(
-                      stepNumber: 4,
-                      title: 'Finalizado y Pago',
-                      subtitle: _job.isPaid
-                          ? 'Pagado con ${_job.paymentMethod}'
-                          : 'Validación final y pago en Soles',
-                      isDone: _job.status == JobStatus.completed && _job.isPaid,
-                      isCurrent: _job.status == JobStatus.completed && !_job.isPaid,
-                      isLast: true,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Action Buttons according to state
-              if (_job.status == JobStatus.onTheWay) ...[
-                ChambaButton(
-                  label: 'Confirmar Llegada del Técnico',
-                  leadingIcon: Icons.home,
-                  onPressed: () {
-                    widget.appState.confirmArrival(_job.id);
-                  },
-                ),
-              ] else if (_job.status == JobStatus.inProgress) ...[
-                ChambaButton(
-                  label: 'Marcar Trabajo Terminado',
-                  leadingIcon: Icons.check_circle_outline,
-                  onPressed: () {
-                    widget.appState.completeJob(_job.id);
-                    _showPaymentModal();
-                  },
-                ),
-              ] else if (_job.status == JobStatus.completed) ...[
-                if (!_job.isPaid)
-                  ChambaButton(
-                    label: 'Registrar Pago (S/. ${_job.budget.toStringAsFixed(0)})',
-                    leadingIcon: Icons.payment,
-                    onPressed: _showPaymentModal,
-                  )
-                else if (_job.rating == null)
+              // Final Rating Button if completed and rating not provided
+              if (_job.escrowStatus == EscrowStatus.released) ...[
+                if (_job.rating == null)
                   ChambaButton.secondary(
                     label: 'Calificar al Especialista ⭐',
                     onPressed: _showRatingModal,
@@ -736,7 +1769,7 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
                         const Icon(Icons.verified, color: AppColors.tertiary),
                         const SizedBox(width: 8),
                         Text(
-                          'Servicio Finalizado y Calificado (${_job.rating} ⭐)',
+                          'Servicio Calificado (${_job.rating} ⭐)',
                           style: AppTypography.labelLg.copyWith(
                             color: AppColors.tertiary,
                             fontWeight: FontWeight.w800,
@@ -746,7 +1779,7 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
                     ),
                   ),
               ],
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -754,83 +1787,81 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
     );
   }
 
-  Widget _buildStep({
-    required int stepNumber,
+  Widget _buildEscrowPhaseCard({
+    required int phaseNumber,
     required String title,
-    required String subtitle,
-    required bool isDone,
+    required bool isCompleted,
     required bool isCurrent,
+    required Widget child,
     bool isLast = false,
   }) {
-    Color circleColor;
-    Color textColor;
-    IconData iconData;
-
-    if (isDone) {
-      circleColor = AppColors.tertiary;
-      textColor = AppColors.neutral;
-      iconData = Icons.check;
+    Color badgeColor;
+    if (isCompleted) {
+      badgeColor = AppColors.tertiary;
     } else if (isCurrent) {
-      circleColor = AppColors.secondary;
-      textColor = AppColors.primary;
-      iconData = Icons.radio_button_checked;
+      badgeColor = AppColors.secondary;
     } else {
-      circleColor = const Color(0x33202D33);
-      textColor = AppColors.muted;
-      iconData = Icons.circle_outlined;
+      badgeColor = const Color(0x33202D33);
     }
 
-    return IntrinsicHeight(
-      child: Row(
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isCurrent ? AppColors.surfaceContainerLow : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isCurrent
+              ? AppColors.secondary
+              : isCompleted
+                  ? AppColors.tertiary.withValues(alpha: 0.4)
+                  : const Color(0x1F202D33),
+          width: isCurrent ? 1.5 : 1,
+        ),
+      ),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
+          Row(
             children: [
               Container(
-                width: 28,
-                height: 28,
+                width: 24,
+                height: 24,
                 decoration: BoxDecoration(
-                  color: isDone || isCurrent ? circleColor : Colors.white,
+                  color: isCompleted ? AppColors.tertiary : badgeColor,
                   shape: BoxShape.circle,
-                  border: Border.all(color: circleColor, width: 2),
                 ),
-                child: Icon(
-                  iconData,
-                  size: 14,
-                  color: isDone || isCurrent ? Colors.white : AppColors.muted,
-                ),
+                alignment: Alignment.center,
+                child: isCompleted
+                    ? const Icon(Icons.check, size: 14, color: Colors.white)
+                    : Text(
+                        '$phaseNumber',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
-              if (!isLast)
-                Expanded(
-                  child: Container(
-                    width: 2,
-                    color: isDone ? AppColors.tertiary : const Color(0x1F202D33),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppTypography.bodyLgMedium.copyWith(
+                    fontWeight: isCurrent || isCompleted ? FontWeight.w800 : FontWeight.w600,
+                    color: isCompleted
+                        ? AppColors.tertiary
+                        : isCurrent
+                            ? AppColors.primary
+                            : AppColors.muted,
                   ),
                 ),
+              ),
             ],
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: AppTypography.bodyLgMedium.copyWith(
-                      fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w600,
-                      color: textColor,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: AppTypography.labelSm.copyWith(color: AppColors.muted),
-                  ),
-                ],
-              ),
-            ),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.only(left: 34.0),
+            child: child,
           ),
         ],
       ),

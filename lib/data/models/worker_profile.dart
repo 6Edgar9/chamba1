@@ -14,6 +14,30 @@ class WorkerReview {
   });
 }
 
+class BeforeAfterCase {
+  final String id;
+  final String title;
+  final String category;
+  final String beforeDescription;
+  final String afterDescription;
+  final String beforeImageUrl;
+  final String afterImageUrl;
+  final String timeSpent;
+  final double cost;
+
+  const BeforeAfterCase({
+    required this.id,
+    required this.title,
+    required this.category,
+    required this.beforeDescription,
+    required this.afterDescription,
+    required this.beforeImageUrl,
+    required this.afterImageUrl,
+    this.timeSpent = '45 min',
+    this.cost = 65.0,
+  });
+}
+
 class WorkerProfile {
   final String id;
   final String name;
@@ -31,6 +55,14 @@ class WorkerProfile {
   final int experienceYears;
   final List<WorkerReview> reviews;
 
+  // Escudo de Confianza flags
+  final bool isIdVerified;
+  final bool hasCleanRecord;
+  final bool offersWarranty;
+
+  // Real before & after work portfolio
+  final List<BeforeAfterCase> portfolioCases;
+
   const WorkerProfile({
     required this.id,
     required this.name,
@@ -47,6 +79,10 @@ class WorkerProfile {
     required this.dni,
     required this.experienceYears,
     required this.reviews,
+    this.isIdVerified = true,
+    this.hasCleanRecord = true,
+    this.offersWarranty = true,
+    this.portfolioCases = const [],
   });
 
   WorkerProfile copyWith({
@@ -64,6 +100,10 @@ class WorkerProfile {
     String? dni,
     int? experienceYears,
     List<WorkerReview>? reviews,
+    bool? isIdVerified,
+    bool? hasCleanRecord,
+    bool? offersWarranty,
+    List<BeforeAfterCase>? portfolioCases,
   }) {
     return WorkerProfile(
       id: id,
@@ -81,6 +121,10 @@ class WorkerProfile {
       dni: dni ?? this.dni,
       experienceYears: experienceYears ?? this.experienceYears,
       reviews: reviews ?? this.reviews,
+      isIdVerified: isIdVerified ?? this.isIdVerified,
+      hasCleanRecord: hasCleanRecord ?? this.hasCleanRecord,
+      offersWarranty: offersWarranty ?? this.offersWarranty,
+      portfolioCases: portfolioCases ?? this.portfolioCases,
     );
   }
 }

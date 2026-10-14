@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_colors.dart';
 import '../../data/models/job_request.dart';
 import '../../data/models/worker_profile.dart';
 import '../../data/models/bid.dart';
@@ -65,6 +66,12 @@ class AppState extends ChangeNotifier {
   bool get isClient => _currentRole == UserRole.client;
   bool get isWorker => _currentRole == UserRole.worker;
 
+  // Dynamic role-based design tokens
+  Color get roleAccentColor => isClient ? AppColors.secondary : AppColors.workerAccent;
+  Color get rolePrimaryColor => isClient ? AppColors.primary : AppColors.workerPrimary;
+  Color get roleSurfaceColor => isClient ? AppColors.surfaceContainer : AppColors.workerSurfaceContainer;
+  String get roleDisplayName => isClient ? 'Modo Cliente' : 'Modo Chamba (Técnico)';
+
   List<JobRequest> get jobs => List.unmodifiable(_jobs);
   List<WorkerProfile> get workers => List.unmodifiable(_workers);
   WorkerProfile get currentWorkerProfile => _currentWorkerProfile;
@@ -107,6 +114,11 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  void toggleUserRole() {
+    _currentRole = _currentRole == UserRole.client ? UserRole.worker : UserRole.client;
+    notifyListeners();
+  }
+
   void setActiveJob(String jobId) {
     _activeJobId = jobId;
     notifyListeners();
@@ -124,7 +136,10 @@ class AppState extends ChangeNotifier {
     double latitude = -6.7760,
     double longitude = -79.8436,
     String reference = '',
+    bool isSos = false,
+    double urgencyMultiplier = 1.0,
   }) {
+    final generatedPin = '${1000 + (DateTime.now().millisecond * 9) % 9000}';
     final newJob = JobRequest(
       id: 'job-${DateTime.now().millisecondsSinceEpoch}',
       title: title,
@@ -143,7 +158,13 @@ class AppState extends ChangeNotifier {
       createdAt: DateTime.now(),
       clientId: 'client-1',
       clientName: clientName,
-      confirmationCode: '${1000 + (DateTime.now().millisecond * 9) % 9000}',
+      confirmationCode: generatedPin,
+      securityPin: generatedPin,
+      isPinVerified: false,
+      isSos: isSos,
+      urgencyMultiplier: urgencyMultiplier,
+      sosExpiresAt: isSos ? DateTime.now().add(const Duration(minutes: 30)) : null,
+      escrowStatus: EscrowStatus.heldInEscrow, // Auto-held for demo smoothness
       bids: [],
     );
 
@@ -154,16 +175,162 @@ class AppState extends ChangeNotifier {
       0,
       AppNotification(
         id: 'notif-${DateTime.now().millisecondsSinceEpoch}',
-        title: '¡Solicitud publicada con éxito!',
-        body: 'Tu solicitud de "$title" está activa. Los especialistas cercanos están revisando tu presupuesto.',
+        title: isSos ? '🚨 ¡Alerta SOS Activada (< 30 min)!' : '¡Solicitud publicada con éxito!',
+        body: isSos
+            ? 'Tu urgencia de "$title" fue enviada con máxima prioridad a especialistas en Chiclayo con llegada en < 30 min.'
+            : 'Tu solicitud de "$title" está activa. Los especialistas cercanos están revisando tu presupuesto.',
         timestamp: DateTime.now(),
         relatedJobId: newJob.id,
-        icon: Icons.campaign_rounded,
+        icon: isSos ? Icons.emergency_rounded : Icons.campaign_rounded,
       ),
     );
 
     notifyListeners();
     return newJob;
+  }
+
+  // Security PIN Verification (Face-to-face trust handshake)
+  bool verifySecurityPin(String jobId, String enteredPin) {
+    final jobIndex = _jobs.indexWhere((j) => j.id == jobId);
+    if (jobIndex == -1) return false;
+
+    final job = _jobs[jobIndex];
+    if (job.securityPin.trim() == enteredPin.trim() || job.confirmationCode.trim() == enteredPin.trim()) {
+      _jobs[jobIndex] = job.copyWith(
+        isPinVerified: true,
+        status: JobStatus.inProgress,
+      );
+
+      _notifications.insert(
+        0,
+        AppNotification(
+          id: 'notif-${DateTime.now().millisecondsSinceEpoch}',
+          title: '🛡️ ¡PIN de Seguridad Validado!',
+          body: 'Identidad presencial confirmada con éxito. El servicio ha iniciado de manera segura.',
+          timestamp: DateTime.now(),
+          relatedJobId: jobId,
+          icon: Icons.verified_user_rounded,
+        ),
+      );
+
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  // Escrow Phase 1: Deposit funds into protected guarantee
+  void depositEscrow({
+    required String jobId,
+    required String paymentMethod,
+  }) {
+    final jobIndex = _jobs.indexWhere((j) => j.id == jobId);
+    if (jobIndex == -1) return;
+
+    final job = _jobs[jobIndex];
+    _jobs[jobIndex] = job.copyWith(
+      escrowStatus: EscrowStatus.heldInEscrow,
+      paymentMethod: paymentMethod,
+    );
+
+    _notifications.insert(
+      0,
+      AppNotification(
+        id: 'notif-${DateTime.now().millisecondsSinceEpoch}',
+        title: '🔒 Pago en Garantía Protegido',
+        body: 'S/. ${job.budget.toStringAsFixed(0)} depositados en custodia Chamba vía $paymentMethod. Los fondos solo se liberarán cuando apruebes el trabajo.',
+        timestamp: DateTime.now(),
+        relatedJobId: jobId,
+        icon: Icons.shield_rounded,
+      ),
+    );
+
+    notifyListeners();
+  }
+
+  // Escrow Phase 3: Upload Before Evidence
+  void uploadBeforeEvidence({
+    required String jobId,
+    required String tag,
+  }) {
+    final jobIndex = _jobs.indexWhere((j) => j.id == jobId);
+    if (jobIndex == -1) return;
+
+    final job = _jobs[jobIndex];
+    _jobs[jobIndex] = job.copyWith(
+      beforePhotoTag: tag,
+      escrowStatus: EscrowStatus.beforePhotoUploaded,
+    );
+
+    _notifications.insert(
+      0,
+      AppNotification(
+        id: 'notif-${DateTime.now().millisecondsSinceEpoch}',
+        title: '📸 Evidencia del "Antes" Registrada',
+        body: 'El estado inicial del desperfecto fue capturado y archivado en tu expediente de garantía.',
+        timestamp: DateTime.now(),
+        relatedJobId: jobId,
+        icon: Icons.camera_alt_rounded,
+      ),
+    );
+
+    notifyListeners();
+  }
+
+  // Escrow Phase 4: Upload After Evidence
+  void uploadAfterEvidence({
+    required String jobId,
+    required String tag,
+  }) {
+    final jobIndex = _jobs.indexWhere((j) => j.id == jobId);
+    if (jobIndex == -1) return;
+
+    final job = _jobs[jobIndex];
+    _jobs[jobIndex] = job.copyWith(
+      afterPhotoTag: tag,
+      escrowStatus: EscrowStatus.afterPhotoUploaded,
+    );
+
+    _notifications.insert(
+      0,
+      AppNotification(
+        id: 'notif-${DateTime.now().millisecondsSinceEpoch}',
+        title: '✨ Trabajo Concluido - Evidencia "Después"',
+        body: 'El técnico finalizó la intervención. Revisa las fotos y confirma la conformidad para liberar el pago.',
+        timestamp: DateTime.now(),
+        relatedJobId: jobId,
+        icon: Icons.check_circle_rounded,
+      ),
+    );
+
+    notifyListeners();
+  }
+
+  // Escrow Final: Client approves conformity and releases payment
+  void releaseEscrow(String jobId) {
+    final jobIndex = _jobs.indexWhere((j) => j.id == jobId);
+    if (jobIndex == -1) return;
+
+    final job = _jobs[jobIndex];
+    _jobs[jobIndex] = job.copyWith(
+      escrowStatus: EscrowStatus.released,
+      status: JobStatus.completed,
+      isPaid: true,
+    );
+
+    _notifications.insert(
+      0,
+      AppNotification(
+        id: 'notif-${DateTime.now().millisecondsSinceEpoch}',
+        title: '🎉 ¡Pago Liberado al Especialista!',
+        body: 'Se transfirieron S/. ${job.budget.toStringAsFixed(0)} a ${job.workerName ?? "el especialista"}. ¡Tu garantía Chamba de 7 días está activa!',
+        timestamp: DateTime.now(),
+        relatedJobId: jobId,
+        icon: Icons.monetization_on_rounded,
+      ),
+    );
+
+    notifyListeners();
   }
 
   void cancelJob(String jobId, {String? reason}) {
@@ -193,6 +360,12 @@ class AppState extends ChangeNotifier {
     required double amount,
     required int etaMinutes,
     required String message,
+    bool hasVoiceNote = false,
+    int voiceDurationSeconds = 0,
+    String? voiceTranscriptPreview,
+    bool includesMaterials = false,
+    String estimatedArrival = '25 min',
+    List<String> inclusionTags = const [],
   }) {
     final jobIndex = _jobs.indexWhere((j) => j.id == jobId);
     if (jobIndex == -1) return;
@@ -211,6 +384,12 @@ class AppState extends ChangeNotifier {
       message: message,
       status: BidStatus.pending,
       createdAt: DateTime.now(),
+      hasVoiceNote: hasVoiceNote,
+      voiceDurationSeconds: voiceDurationSeconds,
+      voiceTranscriptPreview: voiceTranscriptPreview,
+      includesMaterials: includesMaterials,
+      estimatedArrival: estimatedArrival,
+      inclusionTags: inclusionTags,
     );
 
     final job = _jobs[jobIndex];
@@ -474,6 +653,125 @@ class AppState extends ChangeNotifier {
     );
 
     _chatMessages.add(message);
+    notifyListeners();
+  }
+
+  void sendInChatCounterOffer({
+    required String jobId,
+    required double amount,
+  }) {
+    final isFromWorker = _currentRole == UserRole.worker;
+    final senderName = isFromWorker ? _currentWorkerProfile.name : clientName;
+    final senderId = isFromWorker ? _currentWorkerProfile.id : 'client-1';
+
+    final message = ChatMessage(
+      id: 'msg-${DateTime.now().millisecondsSinceEpoch}',
+      jobId: jobId,
+      senderId: senderId,
+      senderName: senderName,
+      isFromWorker: isFromWorker,
+      text: 'Propuesta directa en chat: S/. ${amount.toStringAsFixed(0)}',
+      proposalAmount: amount,
+      isCounterOffer: true,
+      offerAmount: amount,
+      counterOfferStatus: CounterOfferStatus.pending,
+      timestamp: DateTime.now(),
+    );
+
+    _chatMessages.add(message);
+
+    _notifications.insert(
+      0,
+      AppNotification(
+        id: 'notif-${DateTime.now().millisecondsSinceEpoch}',
+        title: '💬 Nueva Contraoferta en Chat',
+        body: '$senderName propuso cerrar el servicio por S/. ${amount.toStringAsFixed(0)}.',
+        timestamp: DateTime.now(),
+        relatedJobId: jobId,
+        icon: Icons.handshake_rounded,
+      ),
+    );
+
+    notifyListeners();
+  }
+
+  void acceptInChatCounterOffer({
+    required String messageId,
+    required String jobId,
+  }) {
+    final msgIndex = _chatMessages.indexWhere((m) => m.id == messageId);
+    if (msgIndex == -1) return;
+
+    final originalMsg = _chatMessages[msgIndex];
+    final agreedAmount = originalMsg.offerAmount ?? originalMsg.proposalAmount ?? 50.0;
+
+    _chatMessages[msgIndex] = originalMsg.copyWith(
+      counterOfferStatus: CounterOfferStatus.accepted,
+    );
+
+    // Update job budget
+    final jobIndex = _jobs.indexWhere((j) => j.id == jobId);
+    if (jobIndex != -1) {
+      _jobs[jobIndex] = _jobs[jobIndex].copyWith(
+        budget: agreedAmount,
+      );
+    }
+
+    // Add confirmation system message to chat
+    _chatMessages.add(
+      ChatMessage(
+        id: 'msg-${DateTime.now().millisecondsSinceEpoch}',
+        jobId: jobId,
+        senderId: 'system',
+        senderName: 'Chamba Oficial',
+        isFromWorker: false,
+        text: '🤝 ¡Trato Cerrado! Se ha fijado el precio final en S/. ${agreedAmount.toStringAsFixed(0)}.',
+        proposalAmount: agreedAmount,
+        timestamp: DateTime.now(),
+      ),
+    );
+
+    _notifications.insert(
+      0,
+      AppNotification(
+        id: 'notif-${DateTime.now().millisecondsSinceEpoch}',
+        title: '🎉 ¡Contraoferta Aceptada!',
+        body: 'El precio del trabajo fue actualizado a S/. ${agreedAmount.toStringAsFixed(0)}.',
+        timestamp: DateTime.now(),
+        relatedJobId: jobId,
+        icon: Icons.check_circle_rounded,
+      ),
+    );
+
+    notifyListeners();
+  }
+
+  void rejectInChatCounterOffer({
+    required String messageId,
+    required String jobId,
+  }) {
+    final msgIndex = _chatMessages.indexWhere((m) => m.id == messageId);
+    if (msgIndex == -1) return;
+
+    final isFromWorker = _currentRole == UserRole.worker;
+    final senderName = isFromWorker ? _currentWorkerProfile.name : clientName;
+
+    _chatMessages[msgIndex] = _chatMessages[msgIndex].copyWith(
+      counterOfferStatus: CounterOfferStatus.rejected,
+    );
+
+    _chatMessages.add(
+      ChatMessage(
+        id: 'msg-${DateTime.now().millisecondsSinceEpoch}',
+        jobId: jobId,
+        senderId: isFromWorker ? _currentWorkerProfile.id : 'client-1',
+        senderName: senderName,
+        isFromWorker: isFromWorker,
+        text: 'La propuesta de precio no fue aceptada. Puedes enviar otra oferta.',
+        timestamp: DateTime.now(),
+      ),
+    );
+
     notifyListeners();
   }
 
