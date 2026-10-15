@@ -193,84 +193,144 @@ class PriceDialStepper extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: statusColor.withValues(alpha: 0.28), width: 1.2),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    // Semáforo dots indicator (3 bolitas)
-                    Row(
-                      children: List.generate(3, (i) {
-                        final isDotActive = i < activeDots;
-                        final dotColor = isDotActive
-                            ? (activeDots == 1
-                                ? const Color(0xFFE05638)
-                                : activeDots == 2
-                                    ? const Color(0xFF10B981)
-                                    : const Color(0xFF2563EB))
-                            : const Color(0x33202D33);
-                        return Container(
-                          margin: const EdgeInsets.only(right: 5),
-                          width: 9,
-                          height: 9,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: dotColor,
-                            boxShadow: isDotActive
-                                ? [
-                                    BoxShadow(
-                                      color: dotColor.withValues(alpha: 0.45),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 1),
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                        );
-                      }),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isCompact = constraints.maxWidth < 280;
+                final badgeWidget = Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    statusBadge,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 9,
+                      letterSpacing: 0.5,
                     ),
-                    const SizedBox(width: 8),
-                    Icon(statusIcon, size: 16, color: statusColor),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
+                  ),
+                );
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (isCompact) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Row(
+                                children: List.generate(3, (i) {
+                                  final isDotActive = i < activeDots;
+                                  final dotColor = isDotActive
+                                      ? (activeDots == 1
+                                          ? const Color(0xFFE05638)
+                                          : activeDots == 2
+                                              ? const Color(0xFF10B981)
+                                              : const Color(0xFF2563EB))
+                                      : const Color(0x33202D33);
+                                  return Container(
+                                    margin: const EdgeInsets.only(right: 5),
+                                    width: 9,
+                                    height: 9,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: dotColor,
+                                      boxShadow: isDotActive
+                                          ? [
+                                              BoxShadow(
+                                                color: dotColor.withValues(alpha: 0.45),
+                                                blurRadius: 4,
+                                                offset: const Offset(0, 1),
+                                              ),
+                                            ]
+                                          : null,
+                                    ),
+                                  );
+                                }),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(statusIcon, size: 16, color: statusColor),
+                            ],
+                          ),
+                          badgeWidget,
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
                         statusTitle,
                         style: AppTypography.labelSm.copyWith(
                           color: statusColor,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(6),
+                    ] else ...[
+                      Row(
+                        children: [
+                          Row(
+                            children: List.generate(3, (i) {
+                              final isDotActive = i < activeDots;
+                              final dotColor = isDotActive
+                                  ? (activeDots == 1
+                                      ? const Color(0xFFE05638)
+                                      : activeDots == 2
+                                          ? const Color(0xFF10B981)
+                                          : const Color(0xFF2563EB))
+                                  : const Color(0x33202D33);
+                              return Container(
+                                margin: const EdgeInsets.only(right: 5),
+                                width: 9,
+                                height: 9,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: dotColor,
+                                  boxShadow: isDotActive
+                                      ? [
+                                          BoxShadow(
+                                            color: dotColor.withValues(alpha: 0.45),
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 1),
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                              );
+                            }),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(statusIcon, size: 16, color: statusColor),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              statusTitle,
+                              style: AppTypography.labelSm.copyWith(
+                                color: statusColor,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          badgeWidget,
+                        ],
                       ),
+                    ],
+                    const SizedBox(height: 5),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 2),
                       child: Text(
-                        statusBadge,
-                        style: TextStyle(
-                          color: statusColor,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 9,
-                          letterSpacing: 0.5,
+                        statusSubtitle,
+                        style: AppTypography.labelSm.copyWith(
+                          color: AppColors.muted,
+                          fontSize: 11,
                         ),
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 5),
-                Padding(
-                  padding: const EdgeInsets.only(left: 2),
-                  child: Text(
-                    statusSubtitle,
-                    style: AppTypography.labelSm.copyWith(
-                      color: AppColors.muted,
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
-              ],
+                );
+              },
             ),
           ),
         ],

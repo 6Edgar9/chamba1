@@ -90,6 +90,8 @@ class _ClientShellState extends State<ClientShell> {
           backgroundColor: Colors.white,
           selectedItemColor: AppColors.secondary,
           unselectedItemColor: AppColors.muted,
+          selectedFontSize: 11,
+          unselectedFontSize: 11,
           selectedLabelStyle: AppTypography.labelSm.copyWith(fontWeight: FontWeight.w700),
           unselectedLabelStyle: AppTypography.labelSm,
           items: const [

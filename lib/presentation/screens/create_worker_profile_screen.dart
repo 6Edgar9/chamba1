@@ -3,6 +3,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/chamba_button.dart';
 import '../../data/models/category.dart';
+import '../../data/services/auth_api_service.dart';
 import '../state/app_state.dart';
 
 class CreateWorkerProfileScreen extends StatefulWidget {
@@ -73,6 +74,20 @@ class _CreateWorkerProfileScreenState extends State<CreateWorkerProfileScreen> {
     );
 
     widget.appState.updateWorkerProfile(updated);
+
+    if (widget.appState.authToken != null) {
+      AuthApiService()
+          .upsertWorkerProfile(
+            widget.appState.authToken!,
+            bio: _bioController.text.trim(),
+            specialty: _selectedSkills.isNotEmpty ? _selectedSkills.first : 'Servicios Generales',
+            district: _districtController.text.trim(),
+            isAvailable: true,
+          )
+          .then((_) => widget.appState.refreshUserProfile())
+          .catchError((_) {});
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('¡Perfil de especialista guardado con éxito!'),

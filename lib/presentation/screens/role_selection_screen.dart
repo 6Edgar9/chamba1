@@ -33,112 +33,124 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                '¿Cómo quieres usar CHAMBA hoy?',
-                style: AppTypography.headlineLg.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight - 32.0 > 0 ? constraints.maxHeight - 32.0 : 0,
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Elige tu rol principal. Podrás alternar entre cliente y especialista en cualquier momento desde tu barra de perfil.',
-                style: AppTypography.bodyMd.copyWith(
-                  color: AppColors.muted,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 28),
-
-              // Option 1: Cliente
-              _buildRoleCard(
-                role: UserRole.client,
-                title: 'Necesito un Servicio',
-                subtitle: 'Para tu hogar o negocio',
-                description:
-                    'Publica lo que necesitas (gasfitería, luz, cerrajería, pintura), define tu presupuesto en S/. y recibe ofertas de técnicos cercanos.',
-                icon: Icons.roofing_rounded,
-                badgeLabel: 'Cliente',
-                badgeType: ChambaBadgeType.confirmed,
-                isSelected: isClient,
-                onTap: () => setState(() => _selectedRole = UserRole.client),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Option 2: Especialista
-              _buildRoleCard(
-                role: UserRole.worker,
-                title: 'Quiero Trabajar',
-                subtitle: 'Técnico o especialista independiente',
-                description:
-                    'Revisa solicitudes publicadas cerca de ti, envía tus cotizaciones o contraofertas y gana dinero directamente.',
-                icon: Icons.construction_rounded,
-                badgeLabel: 'Especialista',
-                badgeType: ChambaBadgeType.counterReceived,
-                isSelected: !isClient,
-                onTap: () => setState(() => _selectedRole = UserRole.worker),
-              ),
-
-              const Spacer(),
-
-              // Switch explanation banner
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.swap_horiz_rounded, color: AppColors.primary, size: 22),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Un solo perfil: puedes publicar servicios y al mismo tiempo trabajar como técnico.',
-                        style: AppTypography.bodyMdMedium.copyWith(
-                          fontSize: 12,
+                child: IntrinsicHeight(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        '¿Cómo quieres usar CHAMBA hoy?',
+                        style: AppTypography.headlineLg.copyWith(
+                          fontWeight: FontWeight.w800,
                           color: AppColors.primary,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      Text(
+                        'Elige tu rol principal. Podrás alternar entre cliente y especialista en cualquier momento desde tu barra de perfil.',
+                        style: AppTypography.bodyMd.copyWith(
+                          color: AppColors.muted,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+
+                      // Option 1: Cliente
+                      _buildRoleCard(
+                        role: UserRole.client,
+                        title: 'Necesito un Servicio',
+                        subtitle: 'Para tu hogar o negocio',
+                        description:
+                            'Publica lo que necesitas (gasfitería, luz, cerrajería, pintura), define tu presupuesto en S/. y recibe ofertas de técnicos cercanos.',
+                        icon: Icons.roofing_rounded,
+                        badgeLabel: 'Cliente',
+                        badgeType: ChambaBadgeType.confirmed,
+                        isSelected: isClient,
+                        onTap: () => setState(() => _selectedRole = UserRole.client),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Option 2: Especialista
+                      _buildRoleCard(
+                        role: UserRole.worker,
+                        title: 'Quiero Trabajar',
+                        subtitle: 'Técnico o especialista independiente',
+                        description:
+                            'Revisa solicitudes publicadas cerca de ti, envía tus cotizaciones o contraofertas y gana dinero directamente.',
+                        icon: Icons.construction_rounded,
+                        badgeLabel: 'Especialista',
+                        badgeType: ChambaBadgeType.counterReceived,
+                        isSelected: !isClient,
+                        onTap: () => setState(() => _selectedRole = UserRole.worker),
+                      ),
+
+                      const Spacer(),
+                      const SizedBox(height: 16),
+
+                      // Switch explanation banner
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.swap_horiz_rounded, color: AppColors.primary, size: 22),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Un solo perfil: puedes publicar servicios y al mismo tiempo trabajar como técnico.',
+                                style: AppTypography.bodyMdMedium.copyWith(
+                                  fontSize: 12,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 18),
+
+                      ChambaButton(
+                        label: isClient ? 'Continuar como Cliente' : 'Continuar como Especialista',
+                        leadingIcon: isClient ? Icons.search : Icons.handyman,
+                        onPressed: () {
+                          final state = widget.appState ?? AppState();
+                          state.switchRole(_selectedRole);
+                          if (isClient) {
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                builder: (_) => ClientShell(appState: state),
+                              ),
+                              (route) => false,
+                            );
+                          } else {
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                builder: (_) => WorkerShell(appState: state),
+                              ),
+                              (route) => false,
+                            );
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                  ),
                 ),
               ),
-
-              const SizedBox(height: 18),
-
-              ChambaButton(
-                label: isClient ? 'Continuar como Cliente' : 'Continuar como Especialista',
-                leadingIcon: isClient ? Icons.search : Icons.handyman,
-                onPressed: () {
-                  final state = widget.appState ?? AppState();
-                  state.switchRole(_selectedRole);
-                  if (isClient) {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (_) => ClientShell(appState: state),
-                      ),
-                      (route) => false,
-                    );
-                  } else {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (_) => WorkerShell(appState: state),
-                      ),
-                      (route) => false,
-                    );
-                  }
-                },
-              ),
-              const SizedBox(height: 10),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -198,15 +210,16 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 6,
+                        runSpacing: 4,
                         children: [
-                          Expanded(
-                            child: Text(
-                              title,
-                              style: AppTypography.headlineSm.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.neutral,
-                              ),
+                          Text(
+                            title,
+                            style: AppTypography.headlineSm.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.neutral,
                             ),
                           ),
                           ChambaBadge(

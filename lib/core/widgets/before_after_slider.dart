@@ -279,51 +279,57 @@ class _BeforeAfterSliderState extends State<BeforeAfterSlider> {
           end: Alignment.bottomRight,
         ),
       ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.3),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.plumbing_rounded,
-              size: 42,
-              color: Color(0xFFFCA5A5),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            widget.caseData?.beforeDescription ?? 'Fuga Severa e Inundación',
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.35),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Text(
-              'ESTADO INICIAL: DAÑO CRÍTICO',
-              style: TextStyle(
-                color: Color(0xFFFECACA),
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Center(
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.plumbing_rounded,
+                  size: 38,
+                  color: Color(0xFFFCA5A5),
+                ),
               ),
-            ),
+              const SizedBox(height: 10),
+              Text(
+                widget.caseData?.beforeDescription ?? 'Fuga Severa e Inundación',
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'ESTADO INICIAL: DAÑO CRÍTICO',
+                  style: TextStyle(
+                    color: Color(0xFFFECACA),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -337,51 +343,57 @@ class _BeforeAfterSliderState extends State<BeforeAfterSlider> {
           end: Alignment.bottomRight,
         ),
       ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.3),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.task_alt_rounded,
-              size: 42,
-              color: Color(0xFF86EFAC),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            widget.caseData?.afterDescription ?? 'Reparación Certificada y Sellada',
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.35),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Text(
-              'ESTADO FINAL: GARANTÍA 7 DÍAS',
-              style: TextStyle(
-                color: Color(0xFFBBF7D0),
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Center(
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.task_alt_rounded,
+                  size: 38,
+                  color: Color(0xFF86EFAC),
+                ),
               ),
-            ),
+              const SizedBox(height: 10),
+              Text(
+                widget.caseData?.afterDescription ?? 'Reparación Certificada y Sellada',
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'ESTADO FINAL: GARANTÍA 7 DÍAS',
+                  style: TextStyle(
+                    color: Color(0xFFBBF7D0),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

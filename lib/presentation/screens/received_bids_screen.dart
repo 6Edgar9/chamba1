@@ -680,39 +680,58 @@ class _ReceivedBidsScreenState extends State<ReceivedBidsScreen> {
             const SizedBox(height: 14),
 
             // Dual action buttons: Aceptar / Contraofertar
-            Row(
-              children: [
-                Expanded(
-                  flex: 5,
-                  child: ChambaButton(
-                    label: 'Aceptar S/. ${(bid.counterAmount ?? bid.amount).toStringAsFixed(0)}',
-                    leadingIcon: Icons.check,
-                    onPressed: () {
-                      widget.appState.acceptBid(
-                        jobId: _currentJob.id,
-                        bidId: bid.id,
-                      );
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (_) => JobTrackingScreen(
-                            appState: widget.appState,
-                            job: widget.appState.activeJob!,
-                          ),
+            LayoutBuilder(
+              builder: (context, actionConstraints) {
+                final isNarrow = actionConstraints.maxWidth < 280;
+                final acceptButton = ChambaButton(
+                  label: 'Aceptar S/. ${(bid.counterAmount ?? bid.amount).toStringAsFixed(0)}',
+                  leadingIcon: Icons.check,
+                  onPressed: () {
+                    widget.appState.acceptBid(
+                      jobId: _currentJob.id,
+                      bidId: bid.id,
+                    );
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                        builder: (_) => JobTrackingScreen(
+                          appState: widget.appState,
+                          job: widget.appState.activeJob!,
                         ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  flex: 4,
-                  child: ChambaButton.secondary(
-                    label: 'Contraofertar',
-                    leadingIcon: Icons.sync_alt,
-                    onPressed: () => _showCounterOfferModal(bid),
-                  ),
-                ),
-              ],
+                      ),
+                    );
+                  },
+                );
+                final counterButton = ChambaButton.secondary(
+                  label: 'Contraofertar',
+                  leadingIcon: Icons.sync_alt,
+                  onPressed: () => _showCounterOfferModal(bid),
+                );
+
+                if (isNarrow) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      acceptButton,
+                      const SizedBox(height: 8),
+                      counterButton,
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    Expanded(
+                      flex: 5,
+                      child: acceptButton,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 4,
+                      child: counterButton,
+                    ),
+                  ],
+                );
+              },
             ),
           ],
         ),

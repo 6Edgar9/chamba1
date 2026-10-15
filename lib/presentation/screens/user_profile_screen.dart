@@ -6,6 +6,7 @@ import '../state/app_state.dart';
 import 'notifications_sheet.dart';
 import 'settings_screen.dart';
 import 'role_selection_screen.dart';
+import 'welcome_screen.dart';
 
 class UserProfileScreen extends StatelessWidget {
   final AppState appState;
@@ -50,9 +51,9 @@ class UserProfileScreen extends StatelessWidget {
                   CircleAvatar(
                     radius: 34,
                     backgroundColor: AppColors.primary,
-                    child: const Text(
-                      'LF',
-                      style: TextStyle(
+                    child: Text(
+                      appState.userInitials,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                         fontSize: 22,
@@ -66,11 +67,15 @@ class UserProfileScreen extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            Text(
-                              appState.clientName,
-                              style: AppTypography.headlineSm.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.neutral,
+                            Flexible(
+                              child: Text(
+                                appState.clientName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTypography.headlineSm.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.neutral,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 6),
@@ -218,15 +223,30 @@ class UserProfileScreen extends StatelessWidget {
             ),
             _buildOptionTile(
               context,
-              icon: Icons.logout,
+              icon: Icons.swap_horiz,
               title: 'Elegir Modo de Uso',
-              subtitle: 'Volver a la selección inicial de roles',
-              textColor: AppColors.secondary,
+              subtitle: 'Cambiar entre Modo Cliente y Modo Trabajador',
+              textColor: AppColors.primary,
               onTap: () {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
-                  (route) => false,
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => RoleSelectionScreen(appState: appState)),
                 );
+              },
+            ),
+            _buildOptionTile(
+              context,
+              icon: Icons.logout,
+              title: 'Cerrar Sesión',
+              subtitle: 'Salir de la cuenta de manera segura',
+              textColor: AppColors.error,
+              onTap: () async {
+                await appState.logout();
+                if (context.mounted) {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => WelcomeScreen(appState: appState)),
+                    (route) => false,
+                  );
+                }
               },
             ),
           ],

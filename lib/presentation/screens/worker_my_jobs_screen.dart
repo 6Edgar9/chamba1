@@ -8,7 +8,6 @@ import '../../data/models/job_request.dart';
 import '../state/app_state.dart';
 import 'chat_screen.dart';
 import 'job_tracking_screen.dart';
-import '../widgets/worker_earnings_dashboard.dart';
 
 class WorkerMyJobsScreen extends StatefulWidget {
   final AppState appState;
@@ -68,75 +67,112 @@ class _WorkerMyJobsScreenState extends State<WorkerMyJobsScreen>
     return Scaffold(
       backgroundColor: AppColors.canvas,
       appBar: AppBar(
-        title: const Text('Mis Trabajos'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          'Mis Trabajos',
+          style: AppTypography.headlineSm.copyWith(
+            fontWeight: FontWeight.w800,
+            color: AppColors.primary,
+          ),
+        ),
         leading: canPop
             ? IconButton(
-                icon: const Icon(Icons.arrow_back),
+                icon: const Icon(Icons.arrow_back, color: AppColors.primary),
                 onPressed: () => Navigator.of(context).pop(),
               )
             : null,
       ),
       body: SafeArea(
-        child: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxIsScrolled) {
-            return [
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: WorkerEarningsDashboard(
-                    appState: widget.appState,
-                    compact: false,
-                  ),
-                ),
+        child: Column(
+          children: [
+            Container(
+              color: Colors.white,
+              child: TabBar(
+                controller: _tabController,
+                labelColor: AppColors.secondary,
+                unselectedLabelColor: AppColors.muted,
+                indicatorColor: AppColors.secondary,
+                indicatorWeight: 3,
+                labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+                labelStyle: AppTypography.bodyMdMedium.copyWith(fontWeight: FontWeight.w800, fontSize: 12),
+                unselectedLabelStyle: AppTypography.bodyMdMedium.copyWith(fontWeight: FontWeight.w600, fontSize: 12),
+                tabs: [
+                  Tab(text: 'Activas (${activeJobs.length})'),
+                  Tab(text: 'Negociando (${negotiatingJobs.length})'),
+                  Tab(text: 'Historial (${completedJobs.length})'),
+                ],
               ),
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _SliverTabBarDelegate(
-                  TabBar(
-                    controller: _tabController,
-                    labelColor: AppColors.secondary,
-                    unselectedLabelColor: AppColors.muted,
-                    indicatorColor: AppColors.secondary,
-                    indicatorWeight: 3,
-                    labelStyle: AppTypography.bodyMdMedium.copyWith(fontWeight: FontWeight.w700),
-                    tabs: [
-                      Tab(text: 'Activas (${activeJobs.length})'),
-                      Tab(text: 'Negociando (${negotiatingJobs.length})'),
-                      Tab(text: 'Historial (${completedJobs.length})'),
-                    ],
+            ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildJobList(
+                    activeJobs,
+                    emptyTitle: 'Sin trabajos en curso',
+                    emptyMessage: 'No tienes servicios activos en este momento.\nRevisa las chambas disponibles para postularte.',
+                    icon: Icons.handyman_outlined,
                   ),
-                ),
+                  _buildJobList(
+                    negotiatingJobs,
+                    emptyTitle: 'Sin cotizaciones pendientes',
+                    emptyMessage: 'No tienes contraofertas ni cotizaciones en negociación actualmente.',
+                    icon: Icons.question_answer_outlined,
+                  ),
+                  _buildJobList(
+                    completedJobs,
+                    emptyTitle: 'Sin chambas finalizadas',
+                    emptyMessage: 'Tus servicios completados y calificaciones se registrarán en esta sección.',
+                    icon: Icons.history_rounded,
+                  ),
+                ],
               ),
-            ];
-          },
-          body: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildJobList(activeJobs, 'No tienes servicios activos en este momento.'),
-              _buildJobList(negotiatingJobs, 'No tienes cotizaciones en negociación actualmente.'),
-              _buildJobList(completedJobs, 'Aún no registras chambas completadas.'),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildJobList(List<JobRequest> jobs, String emptyMessage) {
+  Widget _buildJobList(
+    List<JobRequest> jobs, {
+    required String emptyTitle,
+    required String emptyMessage,
+    required IconData icon,
+  }) {
     if (jobs.isEmpty) {
       return Center(
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(28.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.inbox_outlined, size: 44, color: AppColors.muted),
-              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 36, color: AppColors.muted),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                emptyTitle,
+                style: AppTypography.bodyLgMedium.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 6),
               Text(
                 emptyMessage,
                 textAlign: TextAlign.center,
-                style: AppTypography.bodyMd.copyWith(color: AppColors.muted),
+                style: AppTypography.bodyMd.copyWith(
+                  color: AppColors.muted,
+                  fontSize: 12.5,
+                ),
               ),
             ],
           ),
@@ -145,7 +181,7 @@ class _WorkerMyJobsScreenState extends State<WorkerMyJobsScreen>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       itemCount: jobs.length,
       itemBuilder: (context, index) {
         final job = jobs[index];
@@ -162,8 +198,11 @@ class _WorkerMyJobsScreenState extends State<WorkerMyJobsScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  runSpacing: 4,
                   children: [
                     Text(
                       job.categoryName.toUpperCase(),
@@ -196,10 +235,14 @@ class _WorkerMyJobsScreenState extends State<WorkerMyJobsScreen>
                 const SizedBox(height: 12),
                 const Divider(height: 1, color: Color(0x14202D33)),
                 const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  runSpacing: 6,
                   children: [
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.baseline,
                       textBaseline: TextBaseline.alphabetic,
                       children: [
@@ -219,9 +262,14 @@ class _WorkerMyJobsScreenState extends State<WorkerMyJobsScreen>
                         ),
                       ],
                     ),
-                    Row(
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         IconButton(
+                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                          padding: const EdgeInsets.all(6),
                           icon: const Icon(Icons.chat_bubble_outline, size: 20),
                           color: AppColors.primary,
                           onPressed: () {
@@ -252,30 +300,5 @@ class _WorkerMyJobsScreenState extends State<WorkerMyJobsScreen>
         );
       },
     );
-  }
-}
-
-class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
-  final TabBar tabBar;
-
-  _SliverTabBarDelegate(this.tabBar);
-
-  @override
-  double get minExtent => tabBar.preferredSize.height;
-
-  @override
-  double get maxExtent => tabBar.preferredSize.height;
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: AppColors.canvas,
-      child: tabBar,
-    );
-  }
-
-  @override
-  bool shouldRebuild(_SliverTabBarDelegate oldDelegate) {
-    return oldDelegate.tabBar != tabBar;
   }
 }

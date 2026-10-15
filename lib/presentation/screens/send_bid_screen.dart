@@ -497,20 +497,25 @@ class _SendBidScreenState extends State<SendBidScreen> with SingleTickerProvider
                               child: AnimatedBuilder(
                                 animation: _waveAnimController,
                                 builder: (context, _) {
-                                  return Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                    children: List.generate(14, (i) {
-                                      final factor = ((i * 7) % 10) / 10.0;
-                                      final height = 8.0 + (22.0 * (_waveAnimController.value * factor));
-                                      return Container(
-                                        width: 3.5,
-                                        height: height,
-                                        decoration: BoxDecoration(
-                                          color: Colors.red.withValues(alpha: 0.7),
-                                          borderRadius: BorderRadius.circular(2),
-                                        ),
+                                  return LayoutBuilder(
+                                    builder: (context, waveConstraints) {
+                                      final count = (waveConstraints.maxWidth / 6.5).floor().clamp(4, 14);
+                                      return Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                        children: List.generate(count, (i) {
+                                          final factor = ((i * 7) % 10) / 10.0;
+                                          final height = 8.0 + (22.0 * (_waveAnimController.value * factor));
+                                          return Container(
+                                            width: 3.0,
+                                            height: height,
+                                            decoration: BoxDecoration(
+                                              color: Colors.red.withValues(alpha: 0.7),
+                                              borderRadius: BorderRadius.circular(2),
+                                            ),
+                                          );
+                                        }),
                                       );
-                                    }),
+                                    },
                                   );
                                 },
                               ),

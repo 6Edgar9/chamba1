@@ -7,6 +7,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('CHAMBA'), findsOneWidget);
-    expect(find.text('Empezar Ahora'), findsOneWidget);
+    expect(find.text('Iniciar Sesión'), findsOneWidget);
+    expect(find.text('Crear Cuenta Nueva'), findsOneWidget);
   });
 }

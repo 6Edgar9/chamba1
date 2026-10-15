@@ -90,6 +90,8 @@ class _WorkerShellState extends State<WorkerShell> {
           backgroundColor: Colors.white,
           selectedItemColor: AppColors.workerAccent,
           unselectedItemColor: AppColors.muted,
+          selectedFontSize: 11,
+          unselectedFontSize: 11,
           selectedLabelStyle: AppTypography.labelSm.copyWith(
             fontWeight: FontWeight.w700,
             color: AppColors.workerAccent,

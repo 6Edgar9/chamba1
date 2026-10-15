@@ -125,11 +125,15 @@ class ChambaBadge extends StatelessWidget {
             Icon(icon, size: 13, color: fg),
             const SizedBox(width: 4),
           ],
-          Text(
-            label,
-            style: AppTypography.labelSm.copyWith(
-              color: fg,
-              fontWeight: FontWeight.w700,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.labelSm.copyWith(
+                color: fg,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -327,33 +331,36 @@ class TrustShieldBadgesRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.workerAccent.withValues(alpha: 0.3)),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.shield_rounded, size: 16, color: AppColors.workerAccent),
-            const SizedBox(width: 6),
-            Text(
-              'Escudo de Confianza:',
-              style: AppTypography.labelSm.copyWith(
-                fontWeight: FontWeight.w800,
-                color: AppColors.workerPrimary,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.shield_rounded, size: 16, color: AppColors.workerAccent),
+              const SizedBox(width: 6),
+              Text(
+                'Escudo de Confianza:',
+                style: AppTypography.labelSm.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.workerPrimary,
+                ),
               ),
-            ),
-            const SizedBox(width: 6),
-            if (isIdVerified) ...[
-              _buildMiniBadge(Icons.badge_outlined, 'RENIEC', AppColors.shieldReniec),
+              const SizedBox(width: 6),
+              if (isIdVerified) ...[
+                _buildMiniBadge(Icons.badge_outlined, 'RENIEC', AppColors.shieldReniec),
+                const SizedBox(width: 4),
+              ],
+              if (hasCleanRecord) ...[
+                _buildMiniBadge(Icons.gavel_rounded, 'Sin Antecedentes', AppColors.shieldPolice),
+                const SizedBox(width: 4),
+              ],
+              if (offersWarranty) ...[
+                _buildMiniBadge(Icons.verified_rounded, 'Garantía 7d', AppColors.shieldWarranty),
+              ],
               const SizedBox(width: 4),
+              const Icon(Icons.info_outline, size: 13, color: AppColors.muted),
             ],
-            if (hasCleanRecord) ...[
-              _buildMiniBadge(Icons.gavel_rounded, 'Sin Antecedentes', AppColors.shieldPolice),
-              const SizedBox(width: 4),
-            ],
-            if (offersWarranty) ...[
-              _buildMiniBadge(Icons.verified_rounded, 'Garantía 7d', AppColors.shieldWarranty),
-            ],
-            const SizedBox(width: 4),
-            const Icon(Icons.info_outline, size: 13, color: AppColors.muted),
-          ],
+          ),
         ),
       ),
     );

@@ -258,11 +258,15 @@ class _ClientMyRequestsScreenState extends State<ClientMyRequestsScreen> {
             const SizedBox(height: 12),
             const Divider(height: 1, color: Color(0x14202D33)),
             const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 6,
               children: [
                 _buildStatusBadge(job),
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       isOnTheWayOrActive
