@@ -100,11 +100,15 @@ class _AvailableJobsScreenState extends State<AvailableJobsScreen> {
                   ),
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  _isAvailable ? 'Disponible para recibir ofertas' : 'No disponible',
-                  style: AppTypography.labelSm.copyWith(
-                    color: _isAvailable ? AppColors.tertiary : AppColors.muted,
-                    fontWeight: FontWeight.w700,
+                Flexible(
+                  child: Text(
+                    _isAvailable ? 'Disponible para recibir ofertas' : 'No disponible',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.labelSm.copyWith(
+                      color: _isAvailable ? AppColors.tertiary : AppColors.muted,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],
@@ -149,23 +153,28 @@ class _AvailableJobsScreenState extends State<AvailableJobsScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Jorge Quispe Baldera',
-                            style: AppTypography.bodyLgMedium.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _appState.currentWorkerProfile.name,
+                              style: AppTypography.bodyLgMedium.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Radio: 15 km • 4.9 ⭐ (142 chambas)',
-                            style: AppTypography.labelSm.copyWith(color: Colors.white70),
-                          ),
-                        ],
+                            const SizedBox(height: 2),
+                            Text(
+                              'Radio: ${_appState.currentWorkerProfile.serviceRadiusKm} km • ${_appState.currentWorkerProfile.rating} ⭐ (${_appState.currentWorkerProfile.completedJobs} chambas)',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.labelSm.copyWith(color: Colors.white70),
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Switch(
                         value: _isAvailable,
                         activeThumbColor: AppColors.tertiary,
@@ -209,14 +218,19 @@ class _AvailableJobsScreenState extends State<AvailableJobsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      '${filteredJobs.length} Solicitudes cerca de ti',
-                      style: AppTypography.headlineSm.copyWith(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.primary,
+                    Expanded(
+                      child: Text(
+                        '${filteredJobs.length} Solicitudes cerca de ti',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.headlineSm.copyWith(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     const Icon(Icons.tune, size: 18, color: AppColors.muted),
                   ],
                 ),
@@ -369,20 +383,29 @@ class _AvailableJobsScreenState extends State<AvailableJobsScreen> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: AppColors.sosRed.withValues(alpha: 0.3)),
                   ),
-                  child: Row(
+                  child: Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 6,
+                    runSpacing: 4,
                     children: [
-                      const Icon(Icons.emergency_rounded, size: 16, color: AppColors.sosRed),
-                      const SizedBox(width: 6),
-                      Text(
-                        'URGENTE • LLEGADA < 30 MIN',
-                        style: AppTypography.labelSm.copyWith(
-                          color: AppColors.sosRedDark,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 11,
-                        ),
-                      ),
-                      const Spacer(),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.emergency_rounded, size: 16, color: AppColors.sosRed),
+                          const SizedBox(width: 6),
+                          Text(
+                            'URGENTE • < 30 MIN',
+                            style: AppTypography.labelSm.copyWith(
+                              color: AppColors.sosRedDark,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 10.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(Icons.timer_outlined, size: 14, color: AppColors.sosAmber),
                           const SizedBox(width: 4),
@@ -402,10 +425,14 @@ class _AvailableJobsScreenState extends State<AvailableJobsScreen> {
                   ),
                 ),
               ],
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 6,
+                runSpacing: 4,
                 children: [
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -477,10 +504,10 @@ class _AvailableJobsScreenState extends State<AvailableJobsScreen> {
               const SizedBox(height: 14),
               const Divider(height: 1, color: Color(0x14202D33)),
               const SizedBox(height: 14),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
+              LayoutBuilder(
+                builder: (context, cardConstraints) {
+                  final isCompact = cardConstraints.maxWidth < 360;
+                  final budgetColumn = Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
@@ -511,9 +538,10 @@ class _AvailableJobsScreenState extends State<AvailableJobsScreen> {
                         ],
                       ),
                     ],
-                  ),
-                  ChambaButton(
-                    width: 170,
+                  );
+
+                  final actionBtn = ChambaButton(
+                    width: isCompact ? double.infinity : 170,
                     height: 46,
                     label: isSos ? 'Atender SOS Ya' : 'Enviar Oferta',
                     leadingIcon: isSos ? Icons.flash_on : Icons.send,
@@ -528,8 +556,28 @@ class _AvailableJobsScreenState extends State<AvailableJobsScreen> {
                         ),
                       );
                     },
-                  ),
-                ],
+                  );
+
+                  if (isCompact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        budgetColumn,
+                        const SizedBox(height: 12),
+                        actionBtn,
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(child: budgetColumn),
+                      const SizedBox(width: 8),
+                      actionBtn,
+                    ],
+                  );
+                },
               ),
             ],
           ),

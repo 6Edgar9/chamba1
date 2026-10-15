@@ -95,9 +95,11 @@ class ChambaButton extends StatelessWidget {
         ? Colors.transparent
         : (isGhost ? Colors.transparent : AppColors.primary);
 
-    return SizedBox(
-      height: height,
-      width: width ?? double.infinity,
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        minHeight: height,
+        minWidth: width ?? double.infinity,
+      ),
       child: Material(
         color: bgColor,
         borderRadius: BorderRadius.circular(14),
@@ -105,7 +107,7 @@ class ChambaButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           onTap: isLoading ? null : onPressed,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
@@ -150,7 +152,8 @@ class ChambaButton extends StatelessWidget {
         Flexible(
           child: Text(
             label,
-            maxLines: 1,
+            maxLines: 2,
+            textAlign: TextAlign.center,
             overflow: TextOverflow.ellipsis,
             style: textStyle.copyWith(color: textColor),
           ),

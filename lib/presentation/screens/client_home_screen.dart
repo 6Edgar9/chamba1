@@ -75,49 +75,64 @@ class _ClientHomeScreenState extends State<ClientHomeScreen>
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Top Header: Greeting, Location & Mode Switcher
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                LayoutBuilder(
+                  builder: (context, headerConstraints) {
+                    final isCompactHeader = headerConstraints.maxWidth < 360;
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text(
-                          'Hola, Lucía 👋',
-                          style: AppTypography.headlineSm.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.primary,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Hola, ${_appState.clientName.split(" ").first} 👋',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTypography.headlineSm.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.location_on_outlined,
+                                    size: 14,
+                                    color: AppColors.secondary,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Flexible(
+                                    child: Text(
+                                      _appState.clientDistrict,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppTypography.labelMd.copyWith(
+                                        color: AppColors.neutral,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.keyboard_arrow_down,
+                                    size: 16,
+                                    color: AppColors.muted,
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.location_on_outlined,
-                              size: 14,
-                              color: AppColors.secondary,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Santa Victoria, Chiclayo',
-                              style: AppTypography.labelMd.copyWith(
-                                color: AppColors.neutral,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const Icon(
-                              Icons.keyboard_arrow_down,
-                              size: 16,
-                              color: AppColors.muted,
-                            ),
-                          ],
+                        const SizedBox(width: 8),
+                        RoleSwitcherPill(
+                          appState: _appState,
+                          compact: isCompactHeader,
                         ),
                       ],
-                    ),
-                    RoleSwitcherPill(
-                      appState: _appState,
-                      compact: false,
-                    ),
-                  ],
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 18),
@@ -206,13 +221,18 @@ class _ClientHomeScreenState extends State<ClientHomeScreen>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Categorías de Servicio',
-                      style: AppTypography.headlineSm.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.primary,
+                    Expanded(
+                      child: Text(
+                        'Categorías de Servicio',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.headlineSm.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       '8 oficios',
                       style: AppTypography.labelMd.copyWith(color: AppColors.muted),
@@ -228,13 +248,18 @@ class _ClientHomeScreenState extends State<ClientHomeScreen>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Tus Solicitudes Activas',
-                      style: AppTypography.headlineSm.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.primary,
+                    Expanded(
+                      child: Text(
+                        'Tus Solicitudes Activas',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.headlineSm.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
@@ -355,66 +380,75 @@ class _ClientHomeScreenState extends State<ClientHomeScreen>
 
   Widget _buildCategoriesGrid() {
     final categories = JobCategory.defaultCategories;
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: categories.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.85,
-      ),
-      itemBuilder: (context, index) {
-        final cat = categories[index];
-        return InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => PostJobScreen(
-                  appState: _appState,
-                  initialCategory: cat,
-                ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 340;
+        final aspectRatio = isCompact ? 0.72 : 0.85;
+        final iconBoxSize = isCompact ? 46.0 : 56.0;
+
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: categories.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4,
+            crossAxisSpacing: isCompact ? 8 : 10,
+            mainAxisSpacing: 12,
+            childAspectRatio: aspectRatio,
+          ),
+          itemBuilder: (context, index) {
+            final cat = categories[index];
+            return InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PostJobScreen(
+                      appState: _appState,
+                      initialCategory: cat,
+                    ),
+                  ),
+                );
+              },
+              child: Column(
+                children: [
+                  Container(
+                    width: iconBoxSize,
+                    height: iconBoxSize,
+                    decoration: BoxDecoration(
+                      color: AppColors.card,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0x14202D33), width: 1),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x08173B4D),
+                          blurRadius: 6,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      cat.icon,
+                      size: isCompact ? 22 : 26,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    cat.name,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.labelSm.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.neutral,
+                      fontSize: isCompact ? 10.5 : 12,
+                    ),
+                  ),
+                ],
               ),
             );
           },
-          child: Column(
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: AppColors.card,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0x14202D33), width: 1),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x08173B4D),
-                      blurRadius: 6,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  cat.icon,
-                  size: 26,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                cat.name,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTypography.labelSm.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.neutral,
-                ),
-              ),
-            ],
-          ),
         );
       },
     );
@@ -457,7 +491,11 @@ class _ClientHomeScreenState extends State<ClientHomeScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 6,
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -477,19 +515,21 @@ class _ClientHomeScreenState extends State<ClientHomeScreen>
                                 ),
                               ),
                               const SizedBox(width: 6),
-                              Text(
-                                'CHAMBA SOS • < 30 MIN',
-                                style: AppTypography.labelSm.copyWith(
-                                  color: AppColors.sosRedDark,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 10,
-                                  letterSpacing: 0.5,
+                              Flexible(
+                                child: Text(
+                                  'CHAMBA SOS • < 30 MIN',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTypography.labelSm.copyWith(
+                                    color: AppColors.sosRedDark,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 9.5,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const Spacer(),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
@@ -541,6 +581,8 @@ class _ClientHomeScreenState extends State<ClientHomeScreen>
                         icon: const Icon(Icons.flash_on_rounded, color: AppColors.sosRed, size: 20),
                         label: Text(
                           'Pedir Chamba SOS Ahora (< 30 min)',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: AppTypography.labelLg.copyWith(
                             color: AppColors.sosRedDark,
                             fontWeight: FontWeight.w900,
@@ -616,12 +658,14 @@ class _ClientHomeScreenState extends State<ClientHomeScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             if (isSos) ...[
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                margin: const EdgeInsets.only(right: 6),
                                 decoration: BoxDecoration(
                                   color: AppColors.sosRedLight,
                                   borderRadius: BorderRadius.circular(6),
@@ -651,14 +695,11 @@ class _ClientHomeScreenState extends State<ClientHomeScreen>
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                job.district,
-                                style: AppTypography.labelSm.copyWith(color: AppColors.muted),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                            Text(
+                              '• ${job.district}',
+                              style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
@@ -698,14 +739,18 @@ class _ClientHomeScreenState extends State<ClientHomeScreen>
               const SizedBox(height: 12),
               const Divider(height: 1, color: Color(0x14202D33)),
               const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 6,
                 children: [
                   if (hasOffers) ...[
                     ChambaBadge.counterReceived(
                       label: '${job.bids.length} Ofertas recibidas',
                     ),
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           'Revisar ofertas',
@@ -721,6 +766,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen>
                   ] else if (isOnTheWayOrActive) ...[
                     ChambaBadge.confirmed(label: job.status.displayLabel),
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           'Ver seguimiento',
@@ -805,6 +851,8 @@ class _ClientHomeScreenState extends State<ClientHomeScreen>
                       const SizedBox(height: 2),
                       Text(
                         worker.skills.take(2).join(' • '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: AppTypography.labelMd.copyWith(color: AppColors.muted),
                       ),
                       const SizedBox(height: 4),
@@ -819,9 +867,13 @@ class _ClientHomeScreenState extends State<ClientHomeScreen>
                               color: AppColors.neutral,
                             ),
                           ),
-                          Text(
-                            ' (${worker.completedJobs} chambas)',
-                            style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                          Flexible(
+                            child: Text(
+                              ' (${worker.completedJobs} chambas)',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.labelSm.copyWith(color: AppColors.muted),
+                            ),
                           ),
                         ],
                       ),

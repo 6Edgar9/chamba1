@@ -6,6 +6,9 @@ import '../../data/models/bid.dart';
 import '../../data/models/chat_message.dart';
 import '../../data/models/app_notification.dart';
 import '../../data/mock/mock_data.dart';
+import '../../data/models/user_account.dart';
+import '../../data/services/session_storage.dart';
+import '../../data/services/auth_api_service.dart';
 
 enum UserRole {
   client,
@@ -13,24 +16,84 @@ enum UserRole {
 }
 
 class AppState extends ChangeNotifier {
+  final SessionStorage _sessionStorage = SessionStorage();
+  final AuthApiService _authApi = AuthApiService();
+
   UserRole _currentRole = UserRole.client;
   final List<JobRequest> _jobs = List.from(MockData.initialJobs);
   final List<WorkerProfile> _workers = List.from(MockData.mockWorkers);
   final List<ChatMessage> _chatMessages = List.from(MockData.initialChatMessages);
   final List<AppNotification> _notifications = [];
 
-  late WorkerProfile _currentWorkerProfile;
   String? _activeJobId;
 
-  // Client profile information
-  String clientName = 'Lucía Fernández';
-  String clientPhone = '+51 974 123 456';
-  String clientEmail = 'lucia.fernandez@gmail.com';
-  String clientDistrict = 'Santa Victoria, Chiclayo';
-  String clientAddress = 'Calle Los Pinos 342, Dpto 201';
+  // Real authenticated user & session
+  UserAccount? _currentUser;
+  String? _authToken;
+
+  // Mock fallbacks for demo & test compatibility
+  String _mockClientName = 'Lucía Fernández';
+  String _mockClientPhone = '+51 974 123 456';
+  String _mockClientEmail = 'lucia.fernandez@gmail.com';
+  String _mockClientDistrict = 'Santa Victoria, Chiclayo';
+  String _mockClientAddress = 'Calle Los Pinos 342, Dpto 201';
+
+  String get clientName => _currentUser?.fullName ?? _mockClientName;
+  set clientName(String val) {
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(fullName: val);
+    } else {
+      _mockClientName = val;
+    }
+    notifyListeners();
+  }
+
+  String get clientPhone => _currentUser?.phone ?? _mockClientPhone;
+  set clientPhone(String val) {
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(phone: val);
+    } else {
+      _mockClientPhone = val;
+    }
+    notifyListeners();
+  }
+
+  String get clientEmail => _currentUser?.email ?? _mockClientEmail;
+  set clientEmail(String val) {
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(email: val);
+    } else {
+      _mockClientEmail = val;
+    }
+    notifyListeners();
+  }
+
+  String get clientDistrict => _currentUser?.district ?? _mockClientDistrict;
+  set clientDistrict(String val) {
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(district: val);
+    } else {
+      _mockClientDistrict = val;
+    }
+    notifyListeners();
+  }
+
+  String get clientAddress => _currentUser?.address ?? _mockClientAddress;
+  set clientAddress(String val) {
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(address: val);
+    } else {
+      _mockClientAddress = val;
+    }
+    notifyListeners();
+  }
+
+  String get userInitials => _currentUser?.avatarInitials ?? 'CH';
+  UserAccount? get currentUser => _currentUser;
+  String? get authToken => _authToken;
+  bool get isAuthenticated => _currentUser != null && _authToken != null;
 
   AppState() {
-    _currentWorkerProfile = _workers.first;
     _activeJobId = _jobs.first.id;
 
     // Prepopulate realistic notifications
@@ -74,7 +137,38 @@ class AppState extends ChangeNotifier {
 
   List<JobRequest> get jobs => List.unmodifiable(_jobs);
   List<WorkerProfile> get workers => List.unmodifiable(_workers);
-  WorkerProfile get currentWorkerProfile => _currentWorkerProfile;
+
+  WorkerProfile get currentWorkerProfile {
+    final user = _currentUser;
+    if (user != null) {
+      final wp = user.workerProfile;
+      return WorkerProfile(
+        id: wp?.id ?? 'worker-${user.id}',
+        name: user.fullName,
+        avatarInitials: user.avatarInitials,
+        rating: wp?.rating ?? 5.0,
+        completedJobs: wp?.completedJobs ?? 0,
+        isVerified: true,
+        isIdVerified: true,
+        hasCleanRecord: true,
+        offersWarranty: true,
+        skills: wp?.specialty != null && wp!.specialty!.isNotEmpty
+            ? [wp.specialty!, 'Mantenimiento del Hogar', 'Diagnóstico Técnico']
+            : ['Servicios Generales', 'Mantenimiento'],
+        bio: wp?.bio ?? 'Técnico especialista registrado en CHAMBA Perú.',
+        baseRate: 40.0,
+        serviceRadiusKm: 15,
+        district: user.district ?? 'Chiclayo',
+        phone: user.phone ?? '+51 974 000 000',
+        dni: '45892314',
+        experienceYears: 5,
+        portfolioCases: _workers.first.portfolioCases,
+        reviews: _workers.first.reviews,
+      );
+    }
+    return _workers.first;
+  }
+
   List<AppNotification> get notifications => List.unmodifiable(_notifications);
   int get unreadNotificationsCount => _notifications.where((n) => !n.isRead).length;
 
@@ -86,17 +180,86 @@ class AppState extends ChangeNotifier {
     );
   }
 
-  List<JobRequest> get clientJobs =>
-      _jobs.where((j) => j.clientId == 'client-1').toList();
+  List<JobRequest> get clientJobs {
+    final currentId = _currentUser?.id ?? 'client-1';
+    return _jobs.where((j) => j.clientId == currentId || j.clientId == 'client-1').toList();
+  }
 
   List<JobRequest> get availableWorkerJobs =>
       _jobs.where((j) => j.status == JobStatus.searching || j.status == JobStatus.negotiating).toList();
 
-  List<JobRequest> get workerActiveJobs => _jobs
-      .where((j) =>
-          j.workerId == _currentWorkerProfile.id ||
-          j.bids.any((b) => b.workerId == _currentWorkerProfile.id))
-      .toList();
+  List<JobRequest> get workerActiveJobs {
+    final workerId = currentWorkerProfile.id;
+    return _jobs
+        .where((j) =>
+            j.workerId == workerId ||
+            j.bids.any((b) => b.workerId == workerId) ||
+            j.workerId == 'worker-1')
+        .toList();
+  }
+
+  // Session lifecycle management
+  Future<void> setSession(UserAccount user, String token) async {
+    _currentUser = user;
+    _authToken = token;
+    await _sessionStorage.saveToken(token);
+    await _sessionStorage.saveUser(user);
+    notifyListeners();
+  }
+
+  Future<void> updateUser(UserAccount user) async {
+    _currentUser = user;
+    await _sessionStorage.saveUser(user);
+    notifyListeners();
+  }
+
+  Future<void> logout() async {
+    _currentUser = null;
+    _authToken = null;
+    await _sessionStorage.clearSession();
+    notifyListeners();
+  }
+
+  Future<bool> restoreSession() async {
+    final token = await _sessionStorage.getToken();
+    if (token == null || token.isEmpty) return false;
+
+    // Try reading cached user first for immediate UI responsiveness
+    final cachedUser = await _sessionStorage.getUser();
+    if (cachedUser != null) {
+      _currentUser = cachedUser;
+      _authToken = token;
+      notifyListeners();
+    }
+
+    try {
+      final freshUser = await _authApi.getMe(token);
+      _currentUser = freshUser;
+      _authToken = token;
+      await _sessionStorage.saveUser(freshUser);
+      notifyListeners();
+      return true;
+    } catch (_) {
+      if (cachedUser == null) {
+        await _sessionStorage.clearSession();
+        _currentUser = null;
+        _authToken = null;
+        notifyListeners();
+        return false;
+      }
+      return true;
+    }
+  }
+
+  Future<void> refreshUserProfile() async {
+    if (_authToken == null) return;
+    try {
+      final freshUser = await _authApi.getMe(_authToken!);
+      _currentUser = freshUser;
+      await _sessionStorage.saveUser(freshUser);
+      notifyListeners();
+    } catch (_) {}
+  }
 
   List<ChatMessage> messagesForJob(String jobId) =>
       _chatMessages.where((m) => m.jobId == jobId).toList();
@@ -373,12 +536,12 @@ class AppState extends ChangeNotifier {
     final newBid = Bid(
       id: 'bid-${DateTime.now().millisecondsSinceEpoch}',
       jobId: jobId,
-      workerId: _currentWorkerProfile.id,
-      workerName: _currentWorkerProfile.name,
-      workerAvatar: _currentWorkerProfile.avatarInitials,
-      workerRating: _currentWorkerProfile.rating,
-      workerCompletedJobs: _currentWorkerProfile.completedJobs,
-      isWorkerVerified: _currentWorkerProfile.isVerified,
+      workerId: currentWorkerProfile.id,
+      workerName: currentWorkerProfile.name,
+      workerAvatar: currentWorkerProfile.avatarInitials,
+      workerRating: currentWorkerProfile.rating,
+      workerCompletedJobs: currentWorkerProfile.completedJobs,
+      isWorkerVerified: currentWorkerProfile.isVerified,
       amount: amount,
       etaMinutes: etaMinutes,
       message: message,
@@ -638,8 +801,8 @@ class AppState extends ChangeNotifier {
     double? proposalAmount,
   }) {
     final isFromWorker = _currentRole == UserRole.worker;
-    final senderName = isFromWorker ? _currentWorkerProfile.name : clientName;
-    final senderId = isFromWorker ? _currentWorkerProfile.id : 'client-1';
+    final senderName = isFromWorker ? currentWorkerProfile.name : clientName;
+    final senderId = isFromWorker ? currentWorkerProfile.id : (_currentUser?.id ?? 'client-1');
 
     final message = ChatMessage(
       id: 'msg-${DateTime.now().millisecondsSinceEpoch}',
@@ -661,8 +824,8 @@ class AppState extends ChangeNotifier {
     required double amount,
   }) {
     final isFromWorker = _currentRole == UserRole.worker;
-    final senderName = isFromWorker ? _currentWorkerProfile.name : clientName;
-    final senderId = isFromWorker ? _currentWorkerProfile.id : 'client-1';
+    final senderName = isFromWorker ? currentWorkerProfile.name : clientName;
+    final senderId = isFromWorker ? currentWorkerProfile.id : (_currentUser?.id ?? 'client-1');
 
     final message = ChatMessage(
       id: 'msg-${DateTime.now().millisecondsSinceEpoch}',
@@ -754,7 +917,7 @@ class AppState extends ChangeNotifier {
     if (msgIndex == -1) return;
 
     final isFromWorker = _currentRole == UserRole.worker;
-    final senderName = isFromWorker ? _currentWorkerProfile.name : clientName;
+    final senderName = isFromWorker ? currentWorkerProfile.name : clientName;
 
     _chatMessages[msgIndex] = _chatMessages[msgIndex].copyWith(
       counterOfferStatus: CounterOfferStatus.rejected,
@@ -764,7 +927,7 @@ class AppState extends ChangeNotifier {
       ChatMessage(
         id: 'msg-${DateTime.now().millisecondsSinceEpoch}',
         jobId: jobId,
-        senderId: isFromWorker ? _currentWorkerProfile.id : 'client-1',
+        senderId: isFromWorker ? currentWorkerProfile.id : (_currentUser?.id ?? 'client-1'),
         senderName: senderName,
         isFromWorker: isFromWorker,
         text: 'La propuesta de precio no fue aceptada. Puedes enviar otra oferta.',
@@ -776,7 +939,25 @@ class AppState extends ChangeNotifier {
   }
 
   void updateWorkerProfile(WorkerProfile profile) {
-    _currentWorkerProfile = profile;
+    if (_currentUser != null) {
+      final currentWp = _currentUser!.workerProfile;
+      final updatedWp = WorkerProfileData(
+        id: currentWp?.id ?? 'worker-${_currentUser!.id}',
+        bio: profile.bio,
+        district: profile.district,
+        specialty: profile.skills.isNotEmpty ? profile.skills.first : 'Servicios Generales',
+        isAvailable: profile.isVerified,
+        rating: currentWp?.rating ?? profile.rating,
+        completedJobs: currentWp?.completedJobs ?? profile.completedJobs,
+      );
+      _currentUser = _currentUser!.copyWith(
+        fullName: profile.name,
+        phone: profile.phone,
+        district: profile.district,
+        workerProfile: updatedWp,
+      );
+      _sessionStorage.saveUser(_currentUser!);
+    }
     final index = _workers.indexWhere((w) => w.id == profile.id);
     if (index != -1) {
       _workers[index] = profile;

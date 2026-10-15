@@ -127,28 +127,34 @@ class _RoleSwitcherPillState extends State<RoleSwitcherPill>
                 ),
               ),
               const SizedBox(width: 7),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.compact ? currentRoleLabel : 'Modo: $currentRoleLabel',
-                    style: AppTypography.labelSm.copyWith(
-                      color: pillFg,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 10.5,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                  if (!widget.compact)
+              Flexible(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      'Tocar para $nextRoleLabel',
+                      widget.compact ? currentRoleLabel : 'Modo: $currentRoleLabel',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: AppTypography.labelSm.copyWith(
-                        color: AppColors.muted,
-                        fontSize: 9,
+                        color: pillFg,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 10.5,
+                        letterSpacing: 0.2,
                       ),
                     ),
-                ],
+                    if (!widget.compact)
+                      Text(
+                        'Tocar para $nextRoleLabel',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.labelSm.copyWith(
+                          color: AppColors.muted,
+                          fontSize: 9,
+                        ),
+                      ),
+                  ],
+                ),
               ),
               const SizedBox(width: 4),
               Icon(

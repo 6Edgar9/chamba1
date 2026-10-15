@@ -2,10 +2,37 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/chamba_button.dart';
+import '../state/app_state.dart';
 import 'role_selection_screen.dart';
+import 'login_screen.dart';
+import 'register_screen.dart';
 
-class WelcomeScreen extends StatelessWidget {
-  const WelcomeScreen({super.key});
+class WelcomeScreen extends StatefulWidget {
+  final AppState? appState;
+
+  const WelcomeScreen({super.key, this.appState});
+
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  late final AppState _appState;
+  bool _isCheckingSession = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _appState = widget.appState ?? AppState();
+    _checkSavedSession();
+  }
+
+  Future<void> _checkSavedSession() async {
+    await _appState.restoreSession();
+    if (mounted) {
+      setState(() => _isCheckingSession = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,8 +46,11 @@ class WelcomeScreen extends StatelessWidget {
             children: [
               const SizedBox(height: 12),
               // Brand logo & Peruvian identity badge
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 10,
+                runSpacing: 6,
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
@@ -43,7 +73,6 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
                   Text(
                     'CHAMBA',
                     style: AppTypography.headlineXl.copyWith(
@@ -52,7 +81,6 @@ class WelcomeScreen extends StatelessWidget {
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
@@ -70,7 +98,8 @@ class WelcomeScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 24),
-              // Hero card / illustration banner
+
+              // Hero card
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
@@ -144,18 +173,125 @@ class WelcomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 28),
-              // Action buttons
-              ChambaButton(
-                label: 'Empezar Ahora',
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const RoleSelectionScreen(),
+
+              // Active session pill if user already logged in
+              if (!_isCheckingSession && _appState.isAuthenticated) ...[
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.tertiary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.tertiary.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: AppColors.tertiary,
+                        child: Text(
+                          _appState.userInitials,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Sesión activa',
+                              style: AppTypography.labelSm.copyWith(color: AppColors.tertiary),
+                            ),
+                            Text(
+                              _appState.clientName,
+                              style: AppTypography.bodyLgMedium.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.neutral,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Cerrar sesión',
+                        icon: const Icon(Icons.logout, color: AppColors.muted, size: 20),
+                        onPressed: () async {
+                          await _appState.logout();
+                          if (mounted) setState(() {});
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                ChambaButton(
+                  label: 'Continuar como ${_appState.clientName.split(" ").first}',
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => RoleSelectionScreen(appState: _appState),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 10),
+              ] else ...[
+                // Auth entry buttons
+                ChambaButton(
+                  label: 'Iniciar Sesión',
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => LoginScreen(appState: _appState),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => RegisterScreen(appState: _appState),
+                      ),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: const BorderSide(color: AppColors.primary, width: 1.5),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: Text(
+                    'Crear Cuenta Nueva',
+                    style: AppTypography.bodyLgMedium.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w800,
                     ),
-                  );
-                },
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
+
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => RoleSelectionScreen(appState: _appState),
+                      ),
+                    );
+                  },
+                  child: Text(
+                    'Explorar modo demostración',
+                    style: AppTypography.labelMd.copyWith(
+                      color: AppColors.muted,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 8),
+
               Text(
                 'Al continuar aceptas las condiciones de servicio de CHAMBA Perú.',
                 textAlign: TextAlign.center,

@@ -3,6 +3,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/chamba_card.dart';
 import '../../core/widgets/chamba_button.dart';
+import '../screens/worker_wallet_screen.dart';
 import '../state/app_state.dart';
 
 class WorkerEarningsDashboard extends StatefulWidget {
@@ -75,12 +76,33 @@ class _WorkerEarningsDashboardState extends State<WorkerEarningsDashboard> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Retiro Inmediato de Fondos',
-                            style: AppTypography.headlineSm.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.primary,
-                            ),
+                          Row(
+                            children: [
+                              Text(
+                                'Retiro Inmediato de Fondos',
+                                style: AppTypography.headlineSm.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFEF3C7),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: const Color(0xFFF59E0B)),
+                                ),
+                                child: const Text(
+                                  'DEMO',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFFB45309),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           Text(
                             'Tus ganancias liberadas van directo a tu billetera',
@@ -147,7 +169,7 @@ class _WorkerEarningsDashboardState extends State<WorkerEarningsDashboard> {
                     Navigator.of(ctx).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('💸 ¡Transferencia enviada con éxito! S/. 480.00 transferidos a tu Yape.'),
+                        content: Text('💸 ¡Transferencia enviada con éxito! S/. 480.00 transferidos a tu Yape (Demo).'),
                         backgroundColor: Color(0xFF047857),
                         behavior: SnackBarBehavior.floating,
                       ),
@@ -196,6 +218,96 @@ class _WorkerEarningsDashboardState extends State<WorkerEarningsDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.compact) {
+      return ChambaCard(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => WorkerWalletScreen(appState: widget.appState),
+            ),
+          );
+        },
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.workerAccent.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.account_balance_wallet_rounded,
+                color: AppColors.workerAccent,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Mi Billetera',
+                        style: AppTypography.bodyLgMedium.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: const Color(0xFFF59E0B), width: 0.8),
+                        ),
+                        child: const Text(
+                          'DEMO',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFFB45309),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'S/. 700.00 esta semana • S/. 480.00 disp.',
+                    style: AppTypography.labelSm.copyWith(
+                      color: AppColors.muted,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Detalles',
+                  style: AppTypography.labelSm.copyWith(
+                    color: AppColors.workerAccent,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                const Icon(
+                  Icons.chevron_right,
+                  size: 18,
+                  color: AppColors.workerAccent,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
     const double maxBarHeight = 85.0;
     const double maxAmount = 190.0;
 
@@ -203,7 +315,7 @@ class _WorkerEarningsDashboardState extends State<WorkerEarningsDashboard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
+          // Header with FittedBox so it never truncates
           Row(
             children: [
               Container(
@@ -216,15 +328,17 @@ class _WorkerEarningsDashboardState extends State<WorkerEarningsDashboard> {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(
-                  'Mi Billetera y Rendimiento Semanal',
-                  style: AppTypography.headlineSm.copyWith(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Mi Billetera y Rendimiento Semanal',
+                    style: AppTypography.headlineSm.copyWith(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                    ),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 8),
@@ -365,109 +479,107 @@ class _WorkerEarningsDashboardState extends State<WorkerEarningsDashboard> {
               ),
             ],
           ),
-          if (!widget.compact) ...[
-            const SizedBox(height: 18),
+          const SizedBox(height: 18),
 
-            // PURE FLUTTER WEEKLY EARNINGS BAR CHART
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Ingresos de la Semana: S/. 700.00',
-                  style: AppTypography.bodyLgMedium.copyWith(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
-                    color: AppColors.neutral,
-                  ),
+          // PURE FLUTTER WEEKLY EARNINGS BAR CHART
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Ingresos de la Semana: S/. 700.00',
+                style: AppTypography.bodyLgMedium.copyWith(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                  color: AppColors.neutral,
                 ),
-                if (_hoveredDayIndex != null)
-                  Text(
-                    '${_weeklyData[_hoveredDayIndex!]["day"]}: S/. ${_weeklyData[_hoveredDayIndex!]["amount"].toStringAsFixed(0)}',
-                    style: AppTypography.labelSm.copyWith(
-                      color: AppColors.workerAccent,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  )
-                else
-                  Text(
-                    'Sábado top día ⭐',
-                    style: AppTypography.labelSm.copyWith(color: AppColors.muted, fontSize: 11),
+              ),
+              if (_hoveredDayIndex != null)
+                Text(
+                  '${_weeklyData[_hoveredDayIndex!]["day"]}: S/. ${_weeklyData[_hoveredDayIndex!]["amount"].toStringAsFixed(0)}',
+                  style: AppTypography.labelSm.copyWith(
+                    color: AppColors.workerAccent,
+                    fontWeight: FontWeight.w800,
                   ),
-              ],
-            ),
-            const SizedBox(height: 12),
+                )
+              else
+                Text(
+                  'Sábado top día ⭐',
+                  style: AppTypography.labelSm.copyWith(color: AppColors.muted, fontSize: 11),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
 
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: List.generate(_weeklyData.length, (index) {
-                  final item = _weeklyData[index];
-                  final double amount = item['amount'];
-                  final String day = item['day'];
-                  final bool isBest = item['isBest'] ?? false;
-                  final barHeight = (amount / maxAmount) * maxBarHeight;
-
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() => _hoveredDayIndex = index);
-                    },
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'S/.${amount.toStringAsFixed(0)}',
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: isBest ? FontWeight.w800 : FontWeight.w600,
-                            color: isBest ? AppColors.secondary : AppColors.muted,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Container(
-                          width: 24,
-                          height: barHeight,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: isBest
-                                  ? [AppColors.secondary, const Color(0xFFEA580C)]
-                                  : [AppColors.workerAccent, const Color(0xFF0F766E)],
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                            ),
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-                            boxShadow: isBest
-                                ? [
-                                    BoxShadow(
-                                      color: AppColors.secondary.withValues(alpha: 0.35),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, -2),
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          day,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: isBest ? FontWeight.w800 : FontWeight.w600,
-                            color: isBest ? AppColors.secondary : AppColors.neutral,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }),
-              ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(16),
             ),
-          ],
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: List.generate(_weeklyData.length, (index) {
+                final item = _weeklyData[index];
+                final double amount = item['amount'];
+                final String day = item['day'];
+                final bool isBest = item['isBest'] ?? false;
+                final barHeight = (amount / maxAmount) * maxBarHeight;
+
+                return GestureDetector(
+                  onTap: () {
+                    setState(() => _hoveredDayIndex = index);
+                  },
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'S/.${amount.toStringAsFixed(0)}',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: isBest ? FontWeight.w800 : FontWeight.w600,
+                          color: isBest ? AppColors.secondary : AppColors.muted,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        width: 24,
+                        height: barHeight,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: isBest
+                                ? [AppColors.secondary, const Color(0xFFEA580C)]
+                                : [AppColors.workerAccent, const Color(0xFF0F766E)],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                          boxShadow: isBest
+                              ? [
+                                  BoxShadow(
+                                    color: AppColors.secondary.withValues(alpha: 0.35),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, -2),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        day,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: isBest ? FontWeight.w800 : FontWeight.w600,
+                          color: isBest ? AppColors.secondary : AppColors.neutral,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ),
+          ),
           const SizedBox(height: 18),
 
           // GAMIFICATION: NIVEL CHAMBA (NIVEL PLATA ➔ MAESTRO CHAMBA ORO)

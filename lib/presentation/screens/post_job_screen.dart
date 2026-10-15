@@ -494,7 +494,10 @@ class _PostJobScreenState extends State<PostJobScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
+                                  Wrap(
+                                    crossAxisAlignment: WrapCrossAlignment.center,
+                                    spacing: 6,
+                                    runSpacing: 4,
                                     children: [
                                       Text(
                                         '✨ Diagnóstico Visual con IA',
@@ -503,7 +506,6 @@ class _PostJobScreenState extends State<PostJobScreen> {
                                           fontWeight: FontWeight.w800,
                                         ),
                                       ),
-                                      const SizedBox(width: 6),
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                         decoration: BoxDecoration(
@@ -580,16 +582,14 @@ class _PostJobScreenState extends State<PostJobScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Text(
-                                  'Activar Modo SOS (< 30 min)',
-                                  style: AppTypography.bodyLgMedium.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    color: _isSos ? AppColors.sosRedDark : AppColors.neutral,
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              'Activar Modo SOS (< 30 min)',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.bodyLgMedium.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: _isSos ? AppColors.sosRedDark : AppColors.neutral,
+                              ),
                             ),
                             const SizedBox(height: 2),
                             Text(
