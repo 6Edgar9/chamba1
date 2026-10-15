@@ -1,0 +1,51 @@
+// Prisma Schema for CHAMBA Peru — Phase 1: Authentication & User/Worker Profile
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model User {
+  id           String         @id @default(uuid())
+  fullName     String         @map("full_name")
+  email        String         @unique
+  passwordHash String         @map("password_hash")
+  phone        String?
+  district     String?
+  address      String?
+  status       AccountStatus  @default(ACTIVE)
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  // 1-to-1 relation with optional WorkerProfile (A user can act as Client and enable Worker profile)
+  workerProfile WorkerProfile?
+
+  @@map("users")
+}
+
+model WorkerProfile {
+  id           String   @id @default(uuid())
+  userId       String   @unique @map("user_id")
+  bio          String?
+  district     String?
+  specialty    String?
+  isAvailable  Boolean  @default(true) @map("is_available")
+  rating       Float    @default(5.0)
+  completedJobs Int     @default(0) @map("completed_jobs")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("worker_profiles")
+}

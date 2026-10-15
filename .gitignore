@@ -50,3 +50,40 @@ app.*.map.json
 # CodeGraph
 .codegraph/
 
+# Environment files and credentials
+.env
+.env.*
+.env.local
+.env.*.local
+!.env.example
+*.pem
+*.key
+*.cert
+*.crt
+*.keystore
+*.jks
+credentials.json
+service-account*.json
+
+# Node.js & Backend
+node_modules/
+dist/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Database & Backups (Allow only versioned Prisma migration SQL files)
+backups/
+*.dump
+*.tar
+*.bak
+*.backup
+*.sql.gz
+*.sql
+!backend/prisma/migrations/**/*.sql
+
+# Antigravity & IDE scratch
+.system_generated/
